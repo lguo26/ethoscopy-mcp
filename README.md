@@ -17,7 +17,8 @@ Version `0.1.0a1` is a pre-alpha public preview. The local stdio MCP server can
 inspect trusted Ethoscopy pickles, preview a transfer-aware survival recipe,
 run an exactly approved recipe into immutable, content-addressed artifacts,
 and retrieve verified result metadata. Broader recipe types and further
-scientific regression coverage remain on the roadmap.
+scientific regression coverage remain on the roadmap. The immediate next
+milestones are the public pre-release and a verified end-to-end MCP client run.
 
 ## Principles
 
