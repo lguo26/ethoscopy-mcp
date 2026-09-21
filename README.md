@@ -46,4 +46,5 @@ examples/           synthetic or redistributable examples only
 ```
 
 See [the roadmap](docs/ROADMAP.md), [tool design](docs/TOOLS.md), and
-[data-safety rules](docs/DATA_SAFETY.md).
+[data-safety rules](docs/DATA_SAFETY.md). A preliminary Python API example is
+available in the [quick start](docs/QUICKSTART.md).
