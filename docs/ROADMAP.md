@@ -30,9 +30,10 @@ with two detected deaths, while preserving original recording IDs.
 
 ## Phase 4 — Public release
 
-- Synthetic end-to-end example
-- Installation and client configuration guides
-- Continuous integration and supported-version matrix
-- Security review
-- License review and full license file
-- Initial tagged release
+- [x] Synthetic end-to-end example
+- [x] Installation and client configuration guides
+- [x] Continuous integration for Python 3.12–3.14
+- [x] Initial repository data and credential audit
+- [x] License review and full license file
+- [ ] Enable GitHub private vulnerability reporting
+- [ ] Initial tagged release

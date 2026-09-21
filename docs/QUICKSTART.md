@@ -29,7 +29,8 @@ An MCP client should launch `ethoscopy-mcp` with the two environment variables
 above. The server exposes `inspect_experiment`, `preview_analysis`,
 `run_analysis`, `get_analysis`, and `get_artifact`. It sends structured
 summaries and verified artifact references over MCP; it does not send raw
-behavioural rows or artifact file contents.
+behavioural rows or artifact file contents. See the complete
+[client configuration example](CLIENT_CONFIGURATION.md).
 
 ## Inspect an experiment
 

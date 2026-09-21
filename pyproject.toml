@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "ethoscopy-mcp"
-version = "0.0.0"
+version = "0.1.0a1"
 description = "Local-first MCP integration for reproducible Ethoscopy analysis"
 readme = "README.md"
 license = "GPL-3.0-only"

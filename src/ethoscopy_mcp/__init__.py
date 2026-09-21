@@ -10,7 +10,7 @@ from ethoscopy_mcp.schemas import (
 )
 from ethoscopy_mcp.service import EthoscopyService
 
-__version__ = "0.0.0"
+__version__ = "0.1.0a1"
 
 __all__ = [
     "EthoscopyService",

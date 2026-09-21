@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from importlib import metadata as importlib_metadata
+import inspect
 import json
 from pathlib import Path
 import re
@@ -225,17 +226,37 @@ def _run_recipe(
     working = etho.behavpy(pd.DataFrame(working), selected_meta, check=True)
 
     death = recipe.death_detection
-    death_settings = {
+    death_settings: dict[str, Any] = {
         "mov_column": death.movement_column,
         "second_mov_column": death.second_movement_column,
         "time_window": death.time_window_hours,
         "prop_immobile": death.proportion_immobile,
         "zero_run_hours": death.zero_run_hours,
-        "cumulative": death.cumulative,
     }
-    table = working.km_death_table(**death_settings, time_unit="hours").rename(
-        columns={"genotype": "treatment"}
+    modern_survival_api = (
+        "meta_cols" in inspect.signature(working.km_death_table).parameters
     )
+    if modern_survival_api:
+        # Ethoscopy >=2.4 names the cross-session identity columns explicitly.
+        subject_columns = ["machine_name", "region_id"]
+        table = working.km_death_table(
+            **death_settings,
+            subject_cols=subject_columns,
+            meta_cols=["species"],
+            time_unit="hours",
+        ).rename(columns={"species": "treatment"})
+        plot_api_settings = {
+            "subject_cols": subject_columns,
+            "censor_marks": True,
+            "grids": False,
+        }
+    else:
+        # Ethoscopy 2.2/2.3 infer the same identity from machine_name and ROI.
+        death_settings["cumulative"] = death.cumulative
+        table = working.km_death_table(
+            **death_settings, time_unit="hours"
+        ).rename(columns={"genotype": "treatment"})
+        plot_api_settings = {"censoring_marks": True, "grid": False}
     for column, value in recipe.cohort_filters.items():
         table[column] = value
 
@@ -249,7 +270,7 @@ def _run_recipe(
         figsize=(12.8, 7.2),
         time_unit="days",
         show_ci=True,
-        censoring_marks=True,
+        **plot_api_settings,
     )
     _style_figure(figure)
     return table, figure

@@ -28,3 +28,11 @@ statistical tests require a visible preview before execution.
 Never commit credentials, API keys, access tokens, real private experiment
 data, deployment secrets, or private storage paths. Security reports must not
 include sensitive research data in public issues.
+
+## Reporting a vulnerability
+
+Use GitHub's private vulnerability-reporting mechanism once it is enabled for
+this repository. Until then, contact the maintainer through their GitHub
+profile without including vulnerability details so a private channel can be
+arranged. Do not open a public issue for an unpatched vulnerability, and do not
+attach real research data or credentials to a report.

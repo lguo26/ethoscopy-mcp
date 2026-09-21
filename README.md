@@ -4,6 +4,7 @@ An open-source, local-first MCP integration for reproducible behavioural
 analysis with [Ethoscopy](https://github.com/gilestrolab/ethoscopy).
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+[![CI](https://github.com/lguo26/ethoscopy-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/lguo26/ethoscopy-mcp/actions/workflows/ci.yml)
 
 `ethoscopy-mcp` allows compatible AI clients to inspect experiments, propose
 typed analysis recipes, run approved Ethoscopy workflows, and retrieve compact
@@ -12,7 +13,7 @@ language model.
 
 ## Status
 
-Pre-alpha; not yet ready for public release. The local stdio MCP server can
+Version `0.1.0a1` is a pre-alpha public preview. The local stdio MCP server can
 inspect trusted Ethoscopy pickles, preview a transfer-aware survival recipe,
 run an exactly approved recipe into immutable, content-addressed artifacts,
 and retrieve verified result metadata. Broader recipe types and further
@@ -55,12 +56,14 @@ examples/           synthetic or redistributable examples only
 
 See [the roadmap](docs/ROADMAP.md), [tool design](docs/TOOLS.md), and
 [data-safety rules](docs/DATA_SAFETY.md). A preliminary Python API example is
-available in the [quick start](docs/QUICKSTART.md).
+available in the [quick start](docs/QUICKSTART.md), with MCP client setup in
+[client configuration](docs/CLIENT_CONFIGURATION.md).
 
 ## Contributors
 
 See [CONTRIBUTORS.md](CONTRIBUTORS.md) for project ownership and transparent
-AI-assistance attribution.
+AI-assistance attribution. Contributions are welcome under the process in
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
