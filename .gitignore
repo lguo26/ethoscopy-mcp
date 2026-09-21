@@ -30,6 +30,8 @@ data/
 uploads/
 artifacts/
 analysis_runs/
+test_bundle/
+examples/**/generated/
 *.pkl
 *.pickle
 *.db

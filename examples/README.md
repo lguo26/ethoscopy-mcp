@@ -1,5 +1,6 @@
 # Examples
 
-This directory will contain a synthetic end-to-end experiment demonstrating
-registration, validation, recipe preview, approved execution, result retrieval,
-and artifact provenance.
+The [`synthetic_survival`](synthetic_survival) example demonstrates trusted
+data generation, registration, validation, recipe preview, exact-hash approval,
+execution, result retrieval, and artifact provenance without distributing any
+private research data or committed pickle binaries.
