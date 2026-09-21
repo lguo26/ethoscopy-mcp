@@ -43,3 +43,12 @@ Contributors must have the right to submit their work and should understand
 that accepted contributions are distributed under `GPL-3.0-only`. A formal
 Developer Certificate of Origin or contributor agreement can be added if the
 project later needs more structured contribution governance.
+
+## Relationship to Ethoscope and Ethoscopy
+
+Ethoscope is the upstream behavioural-monitoring platform, while Ethoscopy is
+the analysis library imported and used directly by this package. This
+repository neither contains nor controls Ethoscope device-management code.
+Each upstream project retains its own copyright and license notices. Anyone
+redistributing a combined work must review and satisfy the applicable GPL
+obligations.

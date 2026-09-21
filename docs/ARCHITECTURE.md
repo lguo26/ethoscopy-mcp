@@ -1,19 +1,19 @@
 # Architecture
 
 ```text
-AI client
-    │ MCP
+Ethoscope devices or compatible sources
+    │ recordings and metadata
     ▼
-ethoscopy-mcp adapter
-    ▼
-EthoscopyService
-    ▼
-Ethoscopy
-    ▼
-trusted local sources and versioned output artifacts
+trusted local sources ──read-only──┐
+                                  ▼
+AI client ──MCP──▶ adapter ──▶ EthoscopyService ──▶ Ethoscopy
+                                  │
+                                  ▼
+                         versioned output artifacts
 ```
 
-Scientific calculations remain in Ethoscopy. The service owns source
+Ethoscope hardware and its device-management software are outside this
+repository. Scientific calculations remain in Ethoscopy. The service owns source
 registration, metadata overlays, recipe validation, execution, structured
 results, provenance, and artifact management. MCP translates protocol requests
 into service calls and must not contain custom scientific calculations.

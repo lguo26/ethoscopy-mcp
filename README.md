@@ -59,6 +59,16 @@ See [the roadmap](docs/ROADMAP.md), [tool design](docs/TOOLS.md), and
 available in the [quick start](docs/QUICKSTART.md), with MCP client setup in
 [client configuration](docs/CLIENT_CONFIGURATION.md).
 
+## Relationship to Ethoscopes and Ethoscopy
+
+[Ethoscopes](https://github.com/gilestrolab/ethoscope) are open-source devices
+and software for high-throughput behavioural monitoring. They produce tracking
+data that can be analysed with
+[Ethoscopy](https://github.com/gilestrolab/ethoscopy), the Python analysis
+toolbox used as this project's scientific engine. `ethoscopy-mcp` adds a typed,
+local MCP and service layer around Ethoscopy; it does not replace Ethoscopy or
+control Ethoscope hardware.
+
 ## Contributors
 
 See [CONTRIBUTORS.md](CONTRIBUTORS.md) for project ownership and transparent
