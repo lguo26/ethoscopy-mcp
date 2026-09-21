@@ -44,10 +44,17 @@ class SurvivalPreviewTests(unittest.TestCase):
             repeated = service.run_analysis(
                 manifest, recipe, approved_recipe_hash=preview.recipe_hash
             )
+            retrieved = service.get_analysis(result.analysis_id)
+            retrieved_artifact = service.get_artifact(
+                result.analysis_id, result.artifacts[0].artifact_id
+            )
 
             self.assertFalse(result.reused_existing)
             self.assertTrue(repeated.reused_existing)
             self.assertEqual(result.run_directory, repeated.run_directory)
+            self.assertEqual(result.run_directory, retrieved.run_directory)
+            self.assertTrue(retrieved.reused_existing)
+            self.assertEqual(retrieved_artifact, result.artifacts[0])
             self.assertEqual(len(result.artifacts), 4)
             self.assertTrue(result.provenance_path.is_file())
             for artifact in result.artifacts:
@@ -55,6 +62,12 @@ class SurvivalPreviewTests(unittest.TestCase):
                 self.assertEqual(sha256_file(artifact.path), artifact.sha256)
             for path, digest in hashes_before.items():
                 self.assertEqual(sha256_file(path), digest)
+
+            from ethoscopy_mcp.errors import InvalidExperimentError
+
+            result.artifacts[0].path.write_bytes(b"tampered generated artifact")
+            with self.assertRaises(InvalidExperimentError):
+                service.get_analysis(result.analysis_id)
 
     def test_rejects_execution_without_exact_preview_hash(self):
         with tempfile.TemporaryDirectory() as directory:

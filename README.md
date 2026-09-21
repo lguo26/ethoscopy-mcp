@@ -12,11 +12,11 @@ language model.
 
 ## Status
 
-Pre-alpha; not yet ready for public release. The local service can inspect
-trusted Ethoscopy pickles, preview a transfer-aware survival recipe, and run an
-exactly approved recipe into immutable, content-addressed artifacts. MCP
-transport, broader recipe types, licensing review, and further scientific
-regression coverage remain on the roadmap.
+Pre-alpha; not yet ready for public release. The local stdio MCP server can
+inspect trusted Ethoscopy pickles, preview a transfer-aware survival recipe,
+run an exactly approved recipe into immutable, content-addressed artifacts,
+and retrieve verified result metadata. Broader recipe types and further
+scientific regression coverage remain on the roadmap.
 
 ## Principles
 
@@ -28,22 +28,21 @@ regression coverage remain on the roadmap.
 - Results include provenance, warnings, units, exclusions, and artifact hashes.
 - Raw behavioural rows are not returned to the model by default.
 
-## Planned MCP tool surface
+## MCP tool surface
 
 ```text
-list_experiments
 inspect_experiment
-validate_experiment
 preview_analysis
 run_analysis
 get_analysis
 get_artifact
 ```
 
-`inspect_experiment`, survival `preview_analysis`, and survival `run_analysis`
-already exist in the transport-independent Python service. `run_analysis`
-requires the exact hash returned by a fresh preview, revalidates all inputs,
-operates only on working copies, and atomically creates a new run directory.
+All five tools are available through the local stdio adapter and the
+transport-independent Python service. `run_analysis` requires the exact hash
+returned by a fresh preview, revalidates all inputs, operates only on working
+copies, and atomically creates a new run directory. Retrieval verifies artifact
+paths, sizes, and hashes before returning metadata.
 
 ## Repository layout
 

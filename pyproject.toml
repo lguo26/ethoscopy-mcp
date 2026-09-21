@@ -12,6 +12,7 @@ license-files = ["LICENSE"]
 requires-python = ">=3.12"
 dependencies = [
   "ethoscopy>=2.2,<3",
+  "mcp>=2,<3",
   "pandas>=2.2,<3",
   "pydantic>=2.12,<3",
 ]
@@ -26,6 +27,9 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
   "Topic :: Scientific/Engineering :: Information Analysis",
 ]
+
+[project.scripts]
+ethoscopy-mcp = "ethoscopy_mcp.server:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/ethoscopy_mcp"]

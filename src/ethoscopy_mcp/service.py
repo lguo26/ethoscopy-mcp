@@ -10,7 +10,8 @@ from typing import Any, Iterable
 import pandas as pd
 
 from ethoscopy_mcp.config import Settings
-from ethoscopy_mcp.execution import execute_survival
+from ethoscopy_mcp.execution import execute_survival, load_analysis_result
+from ethoscopy_mcp.errors import InvalidExperimentError
 from ethoscopy_mcp.loaders import load_behaviour_pickle
 from ethoscopy_mcp.preview import preview_survival
 from ethoscopy_mcp.registry import SourceRegistry
@@ -24,6 +25,7 @@ from ethoscopy_mcp.schemas import (
     WarningSeverity,
     AnalysisPreview,
     AnalysisRunResult,
+    ArtifactReference,
     SurvivalRecipe,
 )
 
@@ -112,6 +114,27 @@ class EthoscopyService:
         return execute_survival(
             self.registry, preview, recipe, approved_recipe_hash
         )
+
+    def get_analysis(self, analysis_id: str) -> AnalysisRunResult:
+        """Return a completed run after validating all referenced artifacts."""
+
+        return load_analysis_result(self.registry, analysis_id)
+
+    def get_artifact(
+        self, analysis_id: str, artifact_id: str
+    ) -> ArtifactReference:
+        """Return verified artifact metadata without embedding file contents."""
+
+        result = self.get_analysis(analysis_id)
+        matches = tuple(
+            artifact for artifact in result.artifacts
+            if artifact.artifact_id == artifact_id
+        )
+        if len(matches) != 1:
+            raise InvalidExperimentError(
+                f"Artifact does not exist in analysis {analysis_id}: {artifact_id}"
+            )
+        return matches[0]
 
 
 def _validate_frame(frame: pd.DataFrame, source_id: str) -> list[ValidationWarning]:

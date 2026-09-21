@@ -22,11 +22,11 @@ with two detected deaths, while preserving original recording IDs.
 
 ## Phase 3 — MCP adapter
 
-- Local stdio transport
-- Typed tool inputs and outputs
-- Preview and approval workflow
-- Artifact resources
-- Compact error and warning handling
+- [x] Local stdio transport
+- [x] Typed tool inputs and outputs
+- [x] Preview and approval workflow
+- [x] Verified artifact-reference retrieval
+- [ ] Compact public error codes and client-facing guidance
 
 ## Phase 4 — Public release
 

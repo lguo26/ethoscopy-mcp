@@ -112,6 +112,53 @@ def execute_survival(
         raise
 
 
+def load_analysis_result(
+    registry: SourceRegistry, analysis_id: str
+) -> AnalysisRunResult:
+    """Load a completed run after revalidating its filesystem boundary and hashes."""
+
+    artifact_root = registry.settings.artifact_root
+    if artifact_root is None:
+        raise ConfigurationError("An artifact root is required to retrieve an analysis")
+    safe_id = _safe_component(analysis_id)
+    run_directory = artifact_root / safe_id
+    result_path = run_directory / RESULT_NAME
+    if not result_path.is_file():
+        raise InvalidExperimentError(f"Analysis does not exist: {safe_id}")
+
+    result = AnalysisRunResult.model_validate_json(result_path.read_text())
+    resolved_root = artifact_root.resolve(strict=True)
+    resolved_run = run_directory.resolve(strict=True)
+    try:
+        resolved_run.relative_to(resolved_root)
+    except ValueError as exc:
+        raise InvalidExperimentError(
+            "Analysis directory escapes the configured artifact root"
+        ) from exc
+    if result.analysis_id != safe_id or result.run_directory.resolve() != resolved_run:
+        raise InvalidExperimentError("Stored analysis identity or directory is inconsistent")
+    if result.provenance_path.resolve() != (resolved_run / PROVENANCE_NAME):
+        raise InvalidExperimentError("Stored provenance path is inconsistent")
+
+    for artifact in result.artifacts:
+        try:
+            artifact_path = artifact.path.resolve(strict=True)
+            artifact_path.relative_to(resolved_run)
+        except (FileNotFoundError, ValueError) as exc:
+            raise InvalidExperimentError(
+                f"Artifact escapes the analysis directory or is missing: {artifact.name}"
+            ) from exc
+        if (
+            not artifact_path.is_file()
+            or artifact_path.stat().st_size != artifact.size_bytes
+            or sha256_file(artifact_path) != artifact.sha256
+        ):
+            raise InvalidExperimentError(
+                f"Stored artifact is missing or changed: {artifact.name}"
+            )
+    return result.model_copy(update={"reused_existing": True})
+
+
 def _run_recipe(
     preview: AnalysisPreview, recipe: SurvivalRecipe
 ) -> tuple[pd.DataFrame, Any]:
