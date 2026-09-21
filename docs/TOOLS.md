@@ -24,6 +24,12 @@ Resolve a proposed recipe without executing it. Return cohorts, derived
 columns, exclusions, timing, methods, parameters, expected artifacts, warnings,
 and unresolved assumptions.
 
+The first implemented recipe is transfer-aware survival preview. It validates
+that the mapping covers all metadata IDs, preserves consistency fields within
+each canonical individual, contains at most one segment per individual/date,
+and references the movement columns required by the detector. It hashes the
+recipe together with all source and overlay hashes for approval.
+
 ### `run_analysis(approved_recipe)`
 
 Execute only a validated recipe on working copies. Initial recipe types are

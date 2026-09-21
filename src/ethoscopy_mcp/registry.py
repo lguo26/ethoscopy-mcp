@@ -38,6 +38,27 @@ class SourceRegistry:
             sha256=digest,
         )
 
+    def register_auxiliary(self, requested_path: str | Path) -> SourceFile:
+        path = self.settings.resolve_auxiliary(requested_path)
+        stat = path.stat()
+        digest = sha256_file(path)
+        return SourceFile(
+            source_id=f"sha256-{digest[:16]}",
+            path=path,
+            media_type="text/csv",
+            size_bytes=stat.st_size,
+            modified_ns=stat.st_mtime_ns,
+            sha256=digest,
+        )
+
+    def assert_auxiliary_unchanged(self, source: SourceFile) -> None:
+        path = self.settings.resolve_auxiliary(source.path)
+        stat = path.stat()
+        if stat.st_size != source.size_bytes or sha256_file(path) != source.sha256:
+            raise SourceChangedError(
+                f"Auxiliary file changed after registration: {source.source_id}"
+            )
+
     def assert_unchanged(self, source: SourceFile) -> None:
         path = self.settings.resolve_source(source.path)
         stat = path.stat()

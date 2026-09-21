@@ -45,6 +45,18 @@ class SettingsTests(unittest.TestCase):
             with self.assertRaises(UnsupportedSourceError):
                 settings.resolve_source(source)
 
+    def test_auxiliary_csv_uses_same_trusted_root_boundary(self):
+        with tempfile.TemporaryDirectory() as trusted, tempfile.TemporaryDirectory() as other:
+            inside = Path(trusted) / "mapping.csv"
+            outside = Path(other) / "mapping.csv"
+            inside.write_text("id\nfly-1\n", encoding="utf-8")
+            outside.write_text("id\nfly-2\n", encoding="utf-8")
+            settings = Settings.create([trusted])
+
+            self.assertEqual(settings.resolve_auxiliary(inside), inside.resolve())
+            with self.assertRaises(UnsafePathError):
+                settings.resolve_auxiliary(outside)
+
 
 if __name__ == "__main__":
     unittest.main()

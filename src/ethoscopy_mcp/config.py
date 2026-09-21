@@ -89,6 +89,34 @@ class Settings:
 
         return resolved
 
+    def resolve_auxiliary(
+        self,
+        requested_path: str | Path,
+        allowed_suffixes: Iterable[str] = (".csv",),
+    ) -> Path:
+        """Resolve a non-executable overlay or configuration file."""
+
+        try:
+            resolved = Path(requested_path).expanduser().resolve(strict=True)
+        except FileNotFoundError as exc:
+            raise UnsafePathError(f"Auxiliary file does not exist: {requested_path}") from exc
+
+        if not resolved.is_file():
+            raise UnsafePathError(f"Auxiliary path is not a file: {resolved}")
+        if not any(_is_relative_to(resolved, root) for root in self.trusted_roots):
+            raise UnsafePathError("Auxiliary file is outside the configured trusted roots")
+
+        normalized = {
+            suffix.lower() if suffix.startswith(".") else f".{suffix.lower()}"
+            for suffix in allowed_suffixes
+        }
+        if resolved.suffix.lower() not in normalized:
+            raise UnsupportedSourceError(
+                f"Unsupported auxiliary suffix {resolved.suffix!r}; "
+                f"allowed suffixes: {', '.join(sorted(normalized))}"
+            )
+        return resolved
+
 
 def _is_relative_to(path: Path, root: Path) -> bool:
     try:

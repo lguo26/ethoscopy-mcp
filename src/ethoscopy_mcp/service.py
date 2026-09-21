@@ -11,6 +11,7 @@ import pandas as pd
 
 from ethoscopy_mcp.config import Settings
 from ethoscopy_mcp.loaders import load_behaviour_pickle
+from ethoscopy_mcp.preview import preview_survival
 from ethoscopy_mcp.registry import SourceRegistry
 from ethoscopy_mcp.schemas import (
     ColumnSummary,
@@ -20,6 +21,8 @@ from ethoscopy_mcp.schemas import (
     TimeRange,
     ValidationWarning,
     WarningSeverity,
+    AnalysisPreview,
+    SurvivalRecipe,
 )
 
 
@@ -84,6 +87,16 @@ class EthoscopyService:
             warnings=tuple(warnings),
             source_hashes_verified=True,
         )
+
+    def preview_analysis(
+        self,
+        manifest: ExperimentManifest,
+        recipe: SurvivalRecipe,
+    ) -> AnalysisPreview:
+        """Validate and summarize an analysis recipe without executing it."""
+
+        inspection = self.inspect_experiment(manifest)
+        return preview_survival(self.registry, inspection, recipe)
 
 
 def _validate_frame(frame: pd.DataFrame, source_id: str) -> list[ValidationWarning]:
