@@ -7,6 +7,8 @@ name = "ethoscopy-mcp"
 version = "0.0.0"
 description = "Local-first MCP integration for reproducible Ethoscopy analysis"
 readme = "README.md"
+license = "GPL-3.0-only"
+license-files = ["LICENSE"]
 requires-python = ">=3.12"
 dependencies = [
   "ethoscopy>=2.2,<3",
@@ -19,6 +21,7 @@ authors = [
 classifiers = [
   "Development Status :: 2 - Pre-Alpha",
   "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.12",
   "Topic :: Scientific/Engineering :: Information Analysis",
@@ -26,6 +29,3 @@ classifiers = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/ethoscopy_mcp"]
-
-# Runtime dependencies and the final license declaration will be added only
-# after the MCP SDK version and GPL compatibility boundary have been reviewed.

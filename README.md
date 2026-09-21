@@ -3,6 +3,8 @@
 An open-source, local-first MCP integration for reproducible behavioural
 analysis with [Ethoscopy](https://github.com/gilestrolab/ethoscopy).
 
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+
 `ethoscopy-mcp` allows compatible AI clients to inspect experiments, propose
 typed analysis recipes, run approved Ethoscopy workflows, and retrieve compact
 results and artifact references without sending raw behavioural datasets to a
@@ -55,3 +57,16 @@ examples/           synthetic or redistributable examples only
 See [the roadmap](docs/ROADMAP.md), [tool design](docs/TOOLS.md), and
 [data-safety rules](docs/DATA_SAFETY.md). A preliminary Python API example is
 available in the [quick start](docs/QUICKSTART.md).
+
+## Contributors
+
+See [CONTRIBUTORS.md](CONTRIBUTORS.md) for project ownership and transparent
+AI-assistance attribution.
+
+## License
+
+`ethoscopy-mcp` is licensed under the
+[GNU General Public License version 3 only](LICENSE), expressed as
+`GPL-3.0-only`. Third-party packages remain under their own licenses. Private
+research datasets and generated experiment artifacts are not distributed by
+this repository and are not licensed by this software license.
