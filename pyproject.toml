@@ -1,0 +1,26 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ethoscopy-mcp"
+version = "0.0.0"
+description = "Local-first MCP integration for reproducible Ethoscopy analysis"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+  { name = "lguo26" },
+]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Intended Audience :: Science/Research",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Information Analysis",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ethoscopy_mcp"]
+
+# Runtime dependencies and the final license declaration will be added only
+# after the MCP SDK version and GPL compatibility boundary have been reviewed.

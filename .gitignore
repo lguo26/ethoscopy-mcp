@@ -1,0 +1,43 @@
+# Secrets and configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+dist/
+build/
+*.egg-info/
+
+# Editors and operating systems
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Real research data and generated outputs
+data/
+uploads/
+artifacts/
+analysis_runs/
+*.pkl
+*.pickle
+*.db
+*.sqlite
+*.sqlite3
+*.parquet
+
+# Logs and temporary files
+*.log
+tmp/
+.tmp/
