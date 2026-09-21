@@ -101,6 +101,13 @@ def preview_survival(
 
     transformations = (
         TransformationPreview(
+            operation="baseline_alignment",
+            description=(
+                f"Apply metadata column {recipe.baseline_alignment.metadata_column!r} "
+                f"once using {recipe.baseline_alignment.day_length_hours:g}-hour days."
+            ),
+        ),
+        TransformationPreview(
             operation="identity_overlay",
             description=(
                 "Map recording-segment IDs to canonical machine/ROI identities "
@@ -161,6 +168,7 @@ def preview_survival(
         ),
         cohort_filters=recipe.cohort_filters,
         cohorts=tuple(cohort_previews),
+        baseline_alignment=recipe.baseline_alignment,
         time_alignment=recipe.time_alignment,
         death_detection=recipe.death_detection,
         transformations=transformations,

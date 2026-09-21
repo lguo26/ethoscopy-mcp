@@ -10,6 +10,7 @@ from typing import Any, Iterable
 import pandas as pd
 
 from ethoscopy_mcp.config import Settings
+from ethoscopy_mcp.execution import execute_survival
 from ethoscopy_mcp.loaders import load_behaviour_pickle
 from ethoscopy_mcp.preview import preview_survival
 from ethoscopy_mcp.registry import SourceRegistry
@@ -22,6 +23,7 @@ from ethoscopy_mcp.schemas import (
     ValidationWarning,
     WarningSeverity,
     AnalysisPreview,
+    AnalysisRunResult,
     SurvivalRecipe,
 )
 
@@ -97,6 +99,19 @@ class EthoscopyService:
 
         inspection = self.inspect_experiment(manifest)
         return preview_survival(self.registry, inspection, recipe)
+
+    def run_analysis(
+        self,
+        manifest: ExperimentManifest,
+        recipe: SurvivalRecipe,
+        approved_recipe_hash: str,
+    ) -> AnalysisRunResult:
+        """Execute only the recipe whose freshly validated hash was approved."""
+
+        preview = self.preview_analysis(manifest, recipe)
+        return execute_survival(
+            self.registry, preview, recipe, approved_recipe_hash
+        )
 
 
 def _validate_frame(frame: pd.DataFrame, source_id: str) -> list[ValidationWarning]:

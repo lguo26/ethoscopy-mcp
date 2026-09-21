@@ -3,6 +3,7 @@
 from ethoscopy_mcp.config import Settings
 from ethoscopy_mcp.schemas import (
     AnalysisPreview,
+    AnalysisRunResult,
     ExperimentManifest,
     ExperimentSummary,
     SurvivalRecipe,
@@ -14,6 +15,7 @@ __version__ = "0.0.0"
 __all__ = [
     "EthoscopyService",
     "AnalysisPreview",
+    "AnalysisRunResult",
     "ExperimentManifest",
     "ExperimentSummary",
     "Settings",

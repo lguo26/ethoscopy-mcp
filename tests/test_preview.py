@@ -8,6 +8,7 @@ import pandas as pd
 from ethoscopy_mcp import EthoscopyService, ExperimentManifest, Settings
 from ethoscopy_mcp.registry import sha256_file
 from ethoscopy_mcp.schemas import (
+    BaselineAlignment,
     DeathDetectionSettings,
     GroupDefinition,
     GroupLevel,
@@ -19,6 +20,62 @@ from ethoscopy_mcp.schemas import (
 
 
 class SurvivalPreviewTests(unittest.TestCase):
+    def test_executes_approved_recipe_idempotently_without_mutating_sources(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            artifact_root = root / "analysis_runs"
+            artifact_root.mkdir()
+            first, second, mapping_path = _write_transfer_fixture(root)
+            source_paths = (first, second, mapping_path)
+            hashes_before = {path: sha256_file(path) for path in source_paths}
+            manifest = ExperimentManifest(
+                experiment_id="synthetic-transfer",
+                source_paths=(first, second),
+            )
+            recipe = _survival_recipe(mapping_path)
+            service = EthoscopyService(
+                Settings.create([root], artifact_root=artifact_root)
+            )
+            preview = service.preview_analysis(manifest, recipe)
+
+            result = service.run_analysis(
+                manifest, recipe, approved_recipe_hash=preview.recipe_hash
+            )
+            repeated = service.run_analysis(
+                manifest, recipe, approved_recipe_hash=preview.recipe_hash
+            )
+
+            self.assertFalse(result.reused_existing)
+            self.assertTrue(repeated.reused_existing)
+            self.assertEqual(result.run_directory, repeated.run_directory)
+            self.assertEqual(len(result.artifacts), 4)
+            self.assertTrue(result.provenance_path.is_file())
+            for artifact in result.artifacts:
+                self.assertTrue(artifact.path.is_file())
+                self.assertEqual(sha256_file(artifact.path), artifact.sha256)
+            for path, digest in hashes_before.items():
+                self.assertEqual(sha256_file(path), digest)
+
+    def test_rejects_execution_without_exact_preview_hash(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            artifact_root = root / "analysis_runs"
+            artifact_root.mkdir()
+            first, second, mapping_path = _write_transfer_fixture(root)
+            service = EthoscopyService(
+                Settings.create([root], artifact_root=artifact_root)
+            )
+            manifest = ExperimentManifest(
+                experiment_id="synthetic-transfer", source_paths=(first, second)
+            )
+
+            from ethoscopy_mcp.errors import InvalidExperimentError
+
+            with self.assertRaises(InvalidExperimentError):
+                service.run_analysis(
+                    manifest, _survival_recipe(mapping_path), approved_recipe_hash="0" * 64
+                )
+
     def test_previews_transfer_mapped_survival_without_mutating_sources(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -54,6 +111,8 @@ class SurvivalPreviewTests(unittest.TestCase):
             self.assertEqual(cohorts["S. aureus"].data_segments, 4)
             self.assertEqual(len(preview.recipe_hash), 64)
             self.assertEqual(len(preview.expected_artifacts), 3)
+            self.assertEqual(preview.transformations[0].operation, "baseline_alignment")
+            self.assertTrue(preview.baseline_alignment.apply_once)
             for path, digest in hashes_before.items():
                 self.assertEqual(sha256_file(path), digest)
 
@@ -92,6 +151,7 @@ def _survival_recipe(mapping_path: Path) -> SurvivalRecipe:
             mapping_path=mapping_path,
             expected_dates=("2026-08-21", "2026-08-24"),
         ),
+        baseline_alignment=BaselineAlignment(),
         time_alignment=TimeAlignment(
             source_basis="baseline-aligned ZT",
             output_basis="time since injection",
@@ -184,6 +244,7 @@ def _write_behavpy(path: Path, specs: list[tuple], date: str) -> None:
                 "region_id": int(roi),
                 "sex": "male",
                 "infection": infection,
+                "baseline": 0 if date == "2026-08-21" else 3,
             }
         )
     data = pd.DataFrame(data_rows).set_index("id")

@@ -10,9 +10,11 @@ language model.
 
 ## Status
 
-Early scaffold; not yet ready for public release. The first implementation must
-pass the data-safety, licensing, and scientific regression checks described in
-the documentation.
+Pre-alpha; not yet ready for public release. The local service can inspect
+trusted Ethoscopy pickles, preview a transfer-aware survival recipe, and run an
+exactly approved recipe into immutable, content-addressed artifacts. MCP
+transport, broader recipe types, licensing review, and further scientific
+regression coverage remain on the roadmap.
 
 ## Principles
 
@@ -24,7 +26,7 @@ the documentation.
 - Results include provenance, warnings, units, exclusions, and artifact hashes.
 - Raw behavioural rows are not returned to the model by default.
 
-## Planned tool surface
+## Planned MCP tool surface
 
 ```text
 list_experiments
@@ -35,6 +37,11 @@ run_analysis
 get_analysis
 get_artifact
 ```
+
+`inspect_experiment`, survival `preview_analysis`, and survival `run_analysis`
+already exist in the transport-independent Python service. `run_analysis`
+requires the exact hash returned by a fresh preview, revalidates all inputs,
+operates only on working copies, and atomically creates a new run directory.
 
 ## Repository layout
 

@@ -129,6 +129,12 @@ class TimeAlignment(StrictModel):
     injection_description: str | None = None
 
 
+class BaselineAlignment(StrictModel):
+    metadata_column: str = "baseline"
+    day_length_hours: float = Field(default=24, gt=0, allow_inf_nan=False)
+    apply_once: Literal[True] = True
+
+
 class DeathDetectionSettings(StrictModel):
     movement_column: str = "moving"
     second_movement_column: str | None = "walk"
@@ -152,6 +158,7 @@ class SurvivalRecipe(StrictModel):
     cohort_filters: dict[str, ScalarValue]
     group: GroupDefinition
     identity_overlay: IdentityOverlay
+    baseline_alignment: BaselineAlignment
     time_alignment: TimeAlignment
     death_detection: DeathDetectionSettings = Field(
         default_factory=DeathDetectionSettings
@@ -205,9 +212,42 @@ class AnalysisPreview(StrictModel):
     identity_overlay: IdentityOverlayPreview
     cohort_filters: dict[str, ScalarValue]
     cohorts: tuple[CohortPreview, ...]
+    baseline_alignment: BaselineAlignment
     time_alignment: TimeAlignment
     death_detection: DeathDetectionSettings
     transformations: tuple[TransformationPreview, ...]
     expected_artifacts: tuple[ArtifactPreview, ...]
     assumptions: tuple[str, ...]
     warnings: tuple[ValidationWarning, ...]
+
+
+class ArtifactReference(StrictModel):
+    artifact_id: str
+    artifact_type: str
+    format: str
+    name: str
+    path: Path
+    size_bytes: int = Field(ge=0)
+    sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+
+class GroupOutcome(StrictModel):
+    label: str
+    animals: int = Field(ge=0)
+    detected_deaths: int = Field(ge=0)
+    censored: int = Field(ge=0)
+
+
+class AnalysisRunResult(StrictModel):
+    schema_version: str = SCHEMA_VERSION
+    analysis_id: str
+    recipe_id: str
+    experiment_id: str
+    recipe_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    created_at: datetime
+    run_directory: Path
+    reused_existing: bool
+    artifacts: tuple[ArtifactReference, ...]
+    group_outcomes: tuple[GroupOutcome, ...]
+    provenance_path: Path
+    source_hashes_verified: bool

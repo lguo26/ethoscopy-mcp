@@ -30,10 +30,13 @@ each canonical individual, contains at most one segment per individual/date,
 and references the movement columns required by the detector. It hashes the
 recipe together with all source and overlay hashes for approval.
 
-### `run_analysis(approved_recipe)`
+### `run_analysis(manifest, recipe, approved_recipe_hash)`
 
-Execute only a validated recipe on working copies. Initial recipe types are
-sleep summary, sleep profile, sleep comparison, activity profile, and survival.
+Execute only a freshly revalidated recipe whose hash exactly matches the
+approved preview. Transfer-aware survival is the first implemented execution
+type. It writes CSV/PNG/SVG artifacts and provenance atomically to a
+content-addressed run directory, then verifies that sources and overlays are
+unchanged. Sleep and activity recipes remain planned.
 
 ## Retrieval
 
