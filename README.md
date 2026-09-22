@@ -11,6 +11,8 @@ typed analysis recipes, run approved Ethoscopy workflows, and retrieve compact
 results and artifact references without sending raw behavioural datasets to a
 language model.
 
+[Supported Analyses](#supported-analyses) · [Quick Start](#quick-start) · [Available Tools](#available-tools) · [Example Usage](#example-usage)
+
 ## Features
 
 - **Sleep analysis:** heatmaps, sleep time courses, and per-fly summaries.
@@ -21,15 +23,22 @@ language model.
 - **Group comparisons:** sleep and rebound quantification, with optional
   Mann–Whitney tests.
 
-The typed `sleep` recipe reuses saved Ethoscopy sleep annotations, applies reviewed
-death/censor endpoints (including manual corrections), and exports sleep profiles,
-per-fly summaries and descriptive comparison plots. Python and MCP call the same
+## Supported Analyses
+
+| Analysis | Recipe | What you can generate |
+| --- | --- | --- |
+| [Sleep summaries](docs/SLEEP_ANALYSIS.md) | `sleep` | Sleep profiles, per-fly summaries, and descriptive group comparisons using reviewed death/censor endpoints. |
+| [Sleep plots and deprivation analysis](docs/NOTEBOOK_SLEEP.md) | `sleep_notebook` | Heatmaps, sleep time courses, rebound comparisons, optional Mann–Whitney tests, and SD quality checks using `stimulus_range`. |
+| Survival analysis | `survival` | Movement-based death detection, survival tables, and Kaplan–Meier plots. |
+
+All three workflows use `preview_analysis` and `run_analysis` from the
+[five available MCP tools](#available-tools). You can request them in plain
+language; see [Example Usage](#example-usage). Python and MCP use the same
 shared implementation.
 
-See [Sleep analysis](docs/SLEEP_ANALYSIS.md) and the
-[synthetic example](examples/synthetic_sleep/README.md). A direct Ethoscopy notebook workflow also provides heatmaps, rebound quantification,
-optional Mann–Whitney tests and recorded sleep-deprivation exclusions. Activity
-analysis is not implemented. See [Notebook workflow](docs/NOTEBOOK_SLEEP.md).
+Try the [synthetic sleep example](examples/synthetic_sleep/README.md) or
+[synthetic deprivation and rebound example](examples/synthetic_notebook_sleep/README.md)
+without private experiment data.
 
 ## Status
 
@@ -154,7 +163,8 @@ Once configured, you can ask Codex/Claude things like:
 - “Inspect the experiment in `/path/to/experiment` and show the available groups
   and metadata.”
 - “Preview a survival analysis using `moving` and `walk`, with a 12-hour zero-run
-  threshold. Plot each OD600 group alongside PBS controls at the same temperature.”
+  threshold. Compare experimental groups, such as sleep-deprived versus control
+  or 25 °C versus 29 °C.”
 - “Create sleep heatmaps and time-course plots for control and sleep-deprived
   flies using the saved sleep annotations.”
 - “Use `stimulus_range` metadata to identify each fly's deprivation window.
