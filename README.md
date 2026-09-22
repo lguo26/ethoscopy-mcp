@@ -13,13 +13,13 @@ language model.
 
 ## Features
 
-- **Survival analysis:** movement-based death detection, survival tables, and
-  Kaplan–Meier plots.
 - **Sleep analysis:** heatmaps, sleep time courses, and per-fly summaries.
-- **Group comparisons:** sleep and rebound quantification, with optional
-  Mann–Whitney tests.
 - **Sleep-deprivation quality checks:** metadata-driven deprivation windows and
   recorded per-fly exclusions.
+- **Survival analysis:** movement-based death detection, survival tables, and
+  Kaplan–Meier plots.
+- **Group comparisons:** sleep and rebound quantification, with optional
+  Mann–Whitney tests.
 
 The typed `sleep` recipe reuses saved Ethoscopy sleep annotations, applies reviewed
 death/censor endpoints (including manual corrections), and exports sleep profiles,
