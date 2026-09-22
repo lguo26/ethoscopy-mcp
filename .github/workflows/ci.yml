@@ -11,6 +11,9 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      MPLBACKEND: Agg
     strategy:
       fail-fast: false
       matrix:
@@ -29,5 +32,11 @@ jobs:
       - name: Install package
         run: python -m pip install .
 
+      - name: Check installed dependencies
+        run: python -m pip check
+
       - name: Run tests
         run: python -m unittest discover -s tests -v
+
+      - name: Run synthetic survival example
+        run: python examples/synthetic_survival/run_example.py --approve

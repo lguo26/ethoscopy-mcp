@@ -17,9 +17,9 @@
 - [x] Transfer-aware survival analysis
 - [x] Immune/S. aureus regression using a private external fixture
 
-The private acceptance run reproduces the confirmed combined 0821 male survival
-cohort: PBS 20 animals with one detected death and S. aureus 20 animals with two
-detected deaths, while preserving the original source files and recording IDs.
+Private acceptance fixtures and their research results remain outside this
+repository. Public regression tests use synthetic inputs and check source
+immutability, cohort identity, time units and generated artifacts.
 
 ## Phase 3 — MCP adapter
 
@@ -36,6 +36,8 @@ detected deaths, while preserving the original source files and recording IDs.
 - [x] Continuous integration for Python 3.12–3.14
 - [x] Initial repository data and credential audit
 - [x] License review and full license file
+- [x] Document Ethoscopy 2.4.0 requirements and reproducibility limits
+- [x] Automatic verified exports beside the first source pickle
 - [ ] Change the GitHub repository visibility to public
 - [ ] Enable GitHub private vulnerability reporting
 - [ ] Confirm CI on the sanitized public branch
@@ -53,6 +55,8 @@ Work in this order so each milestone leaves a usable, testable system.
 
 Acceptance: a new user can clone the repository, install it in a fresh virtual
 environment, and run all tests without access to private research data.
+Use the [release checklist](RELEASE_CHECKLIST.md) to record evidence and distinguish
+local verification from hosted CI and repository settings.
 
 ### 2. Validate one real MCP client workflow
 
@@ -70,7 +74,8 @@ without directly importing the Python service.
 - Add compact, documented error codes for configuration, unsafe paths, invalid
   experiments, changed sources, approval mismatch, and artifact verification.
 - Ensure MCP errors do not expose arbitrary local paths or raw data.
-- Add explicit compatibility tests for the supported Ethoscopy 2.2–2.4 APIs.
+- Maintain compatibility tests for the required Ethoscopy 2.4.0 API; reject
+  older loaded engines and require a server restart after upgrading.
 
 Acceptance: client applications can handle expected failures without parsing
 Python exception text.
@@ -78,8 +83,8 @@ Python exception text.
 ### 4. Strengthen scientific regression coverage
 
 - Add richer synthetic survival fixtures with detected deaths and censoring.
-- Re-run the private combined 0821 regression against supported Ethoscopy
-  versions without adding its data or outputs to Git.
+- Re-run private scientific regressions before changing the pinned Ethoscopy
+  version, without adding their data or outputs to Git.
 - Record expected cohort counts, deaths, censoring, units, and artifact hashes.
 
 Acceptance: dependency updates cannot silently change the validated survival

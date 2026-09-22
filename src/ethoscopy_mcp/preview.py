@@ -30,6 +30,11 @@ def preview_survival(
     inspection: ExperimentSummary,
     recipe: SurvivalRecipe,
 ) -> AnalysisPreview:
+    if recipe.death_detection.time_window_hours < 24:
+        raise InvalidExperimentError(
+            "Survival time_window_hours must be at least 24 with the current "
+            "adapter's fixed Ethoscopy resolution of 24."
+        )
     if etho.__version__ != "2.4.0":
         raise InvalidExperimentError(
             "Survival analysis requires loaded Ethoscopy 2.4.0; "

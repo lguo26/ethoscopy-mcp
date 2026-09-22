@@ -77,6 +77,10 @@ time alignment and a per-fly exclusion audit. There is no fixed deprivation
 window. Activity analysis and additional scientific workflows remain on the
 [roadmap](docs/ROADMAP.md).
 
+Public-alpha preparation and verification evidence are tracked in the
+[release checklist](docs/RELEASE_CHECKLIST.md). The initial release is intended
+for researchers evaluating the documented workflows with trusted local data.
+
 ## Prerequisites
 
 - **Python 3.12 or newer**, with an isolated virtual environment. Installing

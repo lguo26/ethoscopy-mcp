@@ -47,7 +47,7 @@ The default death detector is:
 
 These fields extend the manifest, identity, group, cohort and alignment settings.
 See the [complete synthetic recipe](../examples/synthetic_survival/run_example.py)
-for an executable example with explicitly chosen shorter detection windows.
+for an executable example using these detection defaults.
 
 The recipe's `proportion_immobile` maps to Ethoscopy's `prop_immobile`: a mean
 movement value at or below this threshold qualifies as death. A contiguous
@@ -57,6 +57,8 @@ use only the primary column, or `zero_run_hours` to `null` to disable that rule.
 
 No `min_coverage` override is applied. Incomplete final windows are evaluated
 using the library defaults, matching the Ethoscopy 2.4 notebook behavior.
+The adapter retains the library's resolution of 24 window starts per window;
+`time_window_hours` below 24 is rejected during preview.
 Missing tracking values and short or interrupted recordings should therefore
 be reviewed when interpreting inferred deaths.
 
