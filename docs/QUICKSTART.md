@@ -1,95 +1,135 @@
-# Local quick start
+# Quick Start
 
-This API is pre-alpha and currently supports trusted local Ethoscopy pickle
-inspection plus previewed and approved survival execution. Do not load unknown
-or uploaded pickle files.
+This pre-alpha package supports survival analysis, reviewed-endpoint sleep
+summaries, and notebook-style sleep plots and comparisons. Start with a synthetic
+example or connect an MCP client to trusted local Ethoscopy data.
 
-## Configure trusted roots
+## 1. Install
 
-Paths must be supplied locally and must not be committed:
-
-```bash
-export ETHOSCOPY_DATA_ROOTS=/absolute/path/to/trusted/experiments
-export ETHOSCOPY_ARTIFACT_ROOT=/absolute/path/to/local/artifacts
-```
-
-Multiple data roots use the platform path separator (`:` on Linux and macOS).
-
-## Install and start the MCP server
-
-From the repository root, install the package into an isolated environment and
-start its local stdio transport:
+Use Python 3.12 or newer. On Linux or macOS:
 
 ```bash
+git clone https://github.com/lguo26/ethoscopy-mcp.git
+cd ethoscopy-mcp
+python3 -m venv .venv
+source .venv/bin/activate
 python -m pip install -e .
-ethoscopy-mcp
 ```
 
-An MCP client should launch `ethoscopy-mcp` with the two environment variables
-above. The server exposes `inspect_experiment`, `preview_analysis`,
-`run_analysis`, `get_analysis`, and `get_artifact`. It sends structured
-summaries and verified artifact references over MCP; it does not send raw
-behavioural rows or artifact file contents. See the complete
-[client configuration example](CLIENT_CONFIGURATION.md).
+On Windows PowerShell, create the environment with `py -3.12 -m venv .venv`,
+activate it with `.\.venv\Scripts\Activate.ps1`, then run the same pip install command from the repository root.
 
-## Inspect an experiment
+## 2. Try a synthetic analysis
+
+From the repository root, run either example with a new output directory:
+
+```bash
+python examples/synthetic_sleep/run_example.py /absolute/path/to/new-sleep-demo
+python examples/synthetic_notebook_sleep/run_example.py /absolute/path/to/new-notebook-demo
+```
+
+The first example demonstrates sleep summaries with reviewed death/censor
+endpoints. The second demonstrates heatmaps, sleep profiles, rebound comparison,
+and deprivation QC using synthetic `stimulus_range` metadata. It includes a
+Mann–Whitney test and an exclusion audit. These examples create their own data
+and outputs; no experiment pickle or MCP client is needed.
+
+See the [sleep example](../examples/synthetic_sleep/README.md) and
+[notebook example](../examples/synthetic_notebook_sleep/README.md) for details.
+
+## 3. Prepare your experiment
+
+Use trusted Ethoscopy `.pkl` files containing behavioural data and associated
+metadata. The server analyses existing pickles; it does not import raw ethoscope
+databases. Sleep workflows require saved sleep annotations, normally `asleep`.
+
+Choose an existing experiment directory and create a separate output directory.
+For direct Python use, set the following environment variables; MCP clients
+need the same values in their server configuration:
+
+```bash
+mkdir -p /absolute/path/to/analysis-output
+export ETHOSCOPY_DATA_ROOTS="/absolute/path/to/experiments"
+export ETHOSCOPY_ARTIFACT_ROOT="/absolute/path/to/analysis-output"
+```
+
+Multiple data roots use `:` on Linux/macOS and `;` on Windows.
+
+## 4. Connect your client
+
+Follow [Add to Codex](CLIENT_CONFIGURATION.md#add-to-codex) or
+[Add to Claude Desktop](CLIENT_CONFIGURATION.md#add-to-claude-desktop).
+The client launches the installed `ethoscopy-mcp` executable and exposes five
+tools: inspect, preview, run, retrieve analysis, and retrieve artifact.
+
+## 5. Inspect, preview, and run
+
+Start with a specific file:
+
+> Inspect `/absolute/path/to/experiments/experiment.pkl`. Show the available
+> groups, behavioural columns, and metadata.
+
+Then choose an analysis:
+
+| Recipe | Use it for | Additional inputs or decisions |
+| --- | --- | --- |
+| `survival` | Death detection, survival tables, Kaplan–Meier plots | Movement columns, death-detection settings, identity and time alignment. |
+| `sleep` | Interval-based sleep profiles and per-fly summaries | Reviewed death/censor endpoint CSV and sampling interval. |
+| `sleep_notebook` | Heatmaps, time courses, rebound plots, optional Mann–Whitney tests | Endpoint policy, profile and quantification windows; deprivation metadata if QC is requested. |
+
+For example:
+
+> Preview sleep heatmaps and time-course plots for control and deprived flies.
+> Use `stimulus_range` for deprivation QC, excluding deprived flies with more
+> than 5% sleep during that window. Show the resolved windows and exclusions.
+
+The preview identifies assumptions, cohort counts, warnings, and a recipe hash.
+Resolve missing metadata and time alignment, review the preview, and then ask
+the client to run that recipe. `run_analysis` requires the exact fresh preview
+hash and revalidates the inputs before execution.
+
+Deprivation windows have no fixed default. Rebound analysis requires recorded
+post-deprivation data and an explicitly aligned quantification window. Manual
+death corrections can be supplied as reviewed endpoints for sleep; the survival
+recipe does not automatically apply those corrections.
+
+See [sleep summaries](SLEEP_ANALYSIS.md), [notebook-style analysis](NOTEBOOK_SLEEP.md),
+and [tool design](TOOLS.md) for the complete recipe contracts.
+
+## 6. Retrieve results
+
+Ask the client to retrieve the completed analysis and its plots and tables.
+Each run saves requested artifacts, `provenance.json`, and `run-result.json`
+inside the configured artifact root. `get_artifact` returns verified metadata
+and a local path. Repeating an identical run verifies and reuses its results.
+
+## Use the Python service directly
+
+With the environment variables above set, inspection also works without an MCP
+client:
 
 ```python
 from pathlib import Path
-
 from ethoscopy_mcp import EthoscopyService, ExperimentManifest, Settings
 
-settings = Settings.from_env()
-service = EthoscopyService(settings)
-
-summary = service.inspect_experiment(
-    ExperimentManifest(
-        experiment_id="example-001",
-        source_paths=(Path("/absolute/path/to/trusted/experiment.pkl"),),
-    )
+service = EthoscopyService(Settings.from_env())
+manifest = ExperimentManifest(
+    experiment_id="example-001",
+    source_paths=(Path("/absolute/path/to/experiments/experiment.pkl"),),
 )
-
+summary = service.inspect_experiment(manifest)
 print(summary.model_dump_json(indent=2))
 ```
 
-Inspection records source hashes, validates the data/metadata relationship,
-summarizes columns and low-cardinality metadata groups, and verifies that each
-source still has the registered hash after loading.
+The runnable synthetic examples above show complete recipe construction,
+preview, execution, and artifact retrieval using the same service.
 
-## Preview and execute a survival recipe
+## Development checks
 
-Construct a typed `SurvivalRecipe`, then keep preview and execution separate:
-
-```python
-preview = service.preview_analysis(manifest, recipe)
-print(preview.model_dump_json(indent=2))
-
-# Execute only after a person approves this exact preview.
-result = service.run_analysis(
-    manifest,
-    recipe,
-    approved_recipe_hash=preview.recipe_hash,
-)
-print(result.model_dump_json(indent=2))
-```
-
-`baseline_alignment` is an explicit required part of a survival recipe. The
-runner concatenates the loaded recordings, applies that baseline exactly once,
-and performs identity mapping, time alignment, cohort filtering, and group
-labelling only in a working copy. The artifact root must already exist. A
-successful run contains requested CSV/PNG/SVG outputs, `provenance.json`, and
-`run-result.json`; rerunning the same hash verifies and reuses that directory.
-`get_analysis` and `get_artifact` re-check local paths, sizes, and SHA-256 hashes
-before returning result metadata.
-
-## Run the tests
-
-The initial suite uses the Python standard library and requires no separate
-test-runner dependency:
+From the repository root with dependencies installed:
 
 ```bash
-PYTHONPATH=src python -m unittest discover -s tests -v
+python -m unittest discover -s tests -v
 ```
 
-The committed tests generate temporary synthetic Ethoscopy data. Private
-regression datasets remain outside Git.
+Tests use synthetic fixtures; private experiment data are not included.

@@ -11,6 +11,26 @@ typed analysis recipes, run approved Ethoscopy workflows, and retrieve compact
 results and artifact references without sending raw behavioural datasets to a
 language model.
 
+## Features
+
+- **Survival analysis:** movement-based death detection, survival tables, and
+  Kaplan–Meier plots.
+- **Sleep analysis:** heatmaps, sleep time courses, and per-fly summaries.
+- **Group comparisons:** sleep and rebound quantification, with optional
+  Mann–Whitney tests.
+- **Sleep-deprivation quality checks:** metadata-driven deprivation windows and
+  recorded per-fly exclusions.
+
+The typed `sleep` recipe reuses saved Ethoscopy sleep annotations, applies reviewed
+death/censor endpoints (including manual corrections), and exports sleep profiles,
+per-fly summaries and descriptive comparison plots. Python and MCP call the same
+shared implementation.
+
+See [Sleep analysis](docs/SLEEP_ANALYSIS.md) and the
+[synthetic example](examples/synthetic_sleep/README.md). A direct Ethoscopy notebook workflow also provides heatmaps, rebound quantification,
+optional Mann–Whitney tests and recorded sleep-deprivation exclusions. Activity
+analysis is not implemented. See [Notebook workflow](docs/NOTEBOOK_SLEEP.md).
+
 ## Status
 
 Version `0.1.0a1` is a pre-alpha public preview. The local stdio MCP server
@@ -22,16 +42,6 @@ Sleep-deprivation QC uses the ethoscope's `stimulus_range` metadata, with explic
 time alignment and a per-fly exclusion audit. There is no fixed deprivation
 window. Activity analysis and additional scientific workflows remain on the
 [roadmap](docs/ROADMAP.md).
-
-## Principles
-
-- Ethoscopy remains the scientific engine.
-- Original metadata, pickle files, databases, and recordings are immutable.
-- Added columns and corrections are versioned overlays.
-- MCP is a thin adapter around a reusable service.
-- Important assumptions are previewed before execution.
-- Results include provenance, warnings, units, exclusions, and artifact hashes.
-- Raw behavioural rows are not returned to the model by default.
 
 ## Prerequisites
 
@@ -51,6 +61,19 @@ window. Activity analysis and additional scientific workflows remain on the
 Some workflows also require CSV overlays for animal identity or reviewed
 death/censor endpoints. See the [quick start](docs/QUICKSTART.md) for installation
 and [client configuration](docs/CLIENT_CONFIGURATION.md) for connecting a client.
+
+## Quick Start
+
+1. Install the package using the commands below.
+2. Connect [Codex](#add-to-codex) or [Claude Desktop](#add-to-claude-desktop)
+   with your local experiment and output paths.
+3. Ask: “Inspect `/absolute/path/to/experiments/experiment.pkl` and show the
+   available groups, behavioural columns, and metadata.”
+4. Request a survival or sleep analysis, review its preview, then run it and
+   retrieve the plots and tables.
+
+For a complete walkthrough and runnable examples using synthetic data, see
+[Quick Start](docs/QUICKSTART.md).
 
 ## Installation
 
@@ -80,21 +103,99 @@ variables above included in its server configuration. See
 [client configuration](docs/CLIENT_CONFIGURATION.md) for the configuration
 example. The client starts the stdio server when it connects.
 
-## Available Tools
+## Add to Codex
 
-```text
-inspect_experiment
-preview_analysis
-run_analysis
-get_analysis
-get_artifact
+With the Codex CLI installed, register the local server using absolute paths:
+
+```bash
+codex mcp add ethoscopy \
+  --env ETHOSCOPY_DATA_ROOTS=/absolute/path/to/experiments \
+  --env ETHOSCOPY_ARTIFACT_ROOT=/absolute/path/to/analysis-output \
+  -- /absolute/path/to/ethoscopy-mcp/.venv/bin/ethoscopy-mcp
 ```
 
-All five tools are available through the local stdio adapter and the
-transport-independent Python service. `run_analysis` requires the exact hash
-returned by a fresh preview, revalidates all inputs, operates only on working
-copies, and atomically creates a new run directory. Retrieval verifies artifact
-paths, sizes, and hashes before returning metadata.
+Check the saved configuration with `codex mcp get ethoscopy`. Start a new Codex
+session to use the server, then try a prompt from [Example Usage](#example-usage).
+
+## Add to Claude Desktop
+
+Open **Settings → Developer → Edit Config** and add the `ethoscopy` entry below
+to `claude_desktop_config.json`. If you already have MCP servers configured,
+merge the entry into the existing `mcpServers` object.
+
+```json
+{
+  "mcpServers": {
+    "ethoscopy": {
+      "command": "/absolute/path/to/ethoscopy-mcp/.venv/bin/ethoscopy-mcp",
+      "env": {
+        "ETHOSCOPY_DATA_ROOTS": "/absolute/path/to/experiments",
+        "ETHOSCOPY_ARTIFACT_ROOT": "/absolute/path/to/analysis-output"
+      }
+    }
+  }
+}
+```
+
+Replace all paths with paths on the computer running Claude Desktop. The output
+directory must already exist. On Windows, use the virtual environment's
+`Scripts/ethoscopy-mcp.exe` executable and Windows paths with forward slashes
+or escaped backslashes in JSON.
+
+Save the file, fully quit and reopen Claude Desktop, and check that `ethoscopy`
+appears among its available MCP servers. See the official
+[local MCP setup guide](https://modelcontextprotocol.io/docs/develop/connect-local-servers)
+for configuration locations and troubleshooting.
+
+## Example Usage
+
+Once configured, you can ask Codex/Claude things like:
+
+- “Inspect the experiment in `/path/to/experiment` and show the available groups
+  and metadata.”
+- “Preview a survival analysis using `moving` and `walk`, with a 12-hour zero-run
+  threshold. Plot each OD600 group alongside PBS controls at the same temperature.”
+- “Create sleep heatmaps and time-course plots for control and sleep-deprived
+  flies using the saved sleep annotations.”
+- “Use `stimulus_range` metadata to identify each fly's deprivation window.
+  Exclude deprived flies sleeping more than 5% during that window, keep controls,
+  and export the exclusion audit.”
+- “Compare sleep during the first three hours after deprivation ends, using the
+  aligned rebound window. Show per-fly values and run a two-sided Mann–Whitney
+  test between control and deprived flies.”
+- “Use my reviewed death/censor endpoint CSV for sleep summaries, keeping
+  temperature and OD600 groups separate.”
+- “Retrieve the plots, summary tables, and provenance for the completed analysis.”
+
+Replace example paths with files inside your configured data roots. The client
+uses the available MCP tools to inspect inputs and preview a recipe before
+running it. Required metadata, time alignment, and analysis windows must be
+resolved before execution; rebound comparisons require recorded post-deprivation
+sleep data. See [client configuration](docs/CLIENT_CONFIGURATION.md) for setup.
+
+## Available Tools
+
+| Tool | Purpose |
+| --- | --- |
+| `inspect_experiment` | Summarize input files, behavioural columns, and metadata. |
+| `preview_analysis` | Validate a recipe and review cohorts, assumptions, and warnings. |
+| `run_analysis` | Execute the recipe using its approved preview hash. |
+| `get_analysis` | Retrieve a completed run's summary and artifact references. |
+| `get_artifact` | Retrieve a verified artifact's metadata and local path. |
+
+All five tools are available through the local stdio adapter and the Python
+service. Execution revalidates inputs, operates on working copies, and saves
+results with provenance. Retrieval verifies artifact paths, sizes, and hashes.
+
+## Principles
+
+- Ethoscopy remains the scientific engine.
+- Original metadata, pickle files, databases, and recordings are immutable.
+- Added columns and corrections are versioned overlays.
+- MCP is a thin adapter around a reusable service.
+- Important assumptions are previewed before execution.
+- Results include provenance, warnings, units, exclusions, and artifact hashes.
+- Raw behavioural rows are not returned to the model by default.
 
 ## Repository layout
 
@@ -133,49 +234,3 @@ AI-assistance attribution. Contributions are welcome under the process in
 `GPL-3.0-only`. Third-party packages remain under their own licenses. Private
 research datasets and generated experiment artifacts are not distributed by
 this repository and are not licensed by this software license.
-
-## Features
-
-- **Survival analysis:** movement-based death detection, survival tables, and
-  Kaplan–Meier plots.
-- **Sleep analysis:** heatmaps, sleep time courses, and per-fly summaries.
-- **Group comparisons:** sleep and rebound quantification, with optional
-  Mann–Whitney tests.
-- **Sleep-deprivation quality checks:** metadata-driven deprivation windows and
-  recorded per-fly exclusions.
-
-The typed `sleep` recipe reuses saved Ethoscopy sleep annotations, applies reviewed
-death/censor endpoints (including manual corrections), and exports sleep profiles,
-per-fly summaries and descriptive comparison plots. Python and MCP call the same
-shared implementation.
-
-See [Sleep analysis](docs/SLEEP_ANALYSIS.md) and the
-[synthetic example](examples/synthetic_sleep/README.md). A direct Ethoscopy notebook workflow also provides heatmaps, rebound quantification,
-optional Mann–Whitney tests and recorded sleep-deprivation exclusions. Activity
-analysis is not implemented. See [Notebook workflow](docs/NOTEBOOK_SLEEP.md).
-
-## Example Usage
-
-Once configured, you can ask Codex/Claude things like:
-
-- “Inspect the experiment in `/path/to/experiment` and show the available groups
-  and metadata.”
-- “Preview a survival analysis using `moving` and `walk`, with a 12-hour zero-run
-  threshold. Plot each OD600 group alongside PBS controls at the same temperature.”
-- “Create sleep heatmaps and time-course plots for control and sleep-deprived
-  flies using the saved sleep annotations.”
-- “Use `stimulus_range` metadata to identify each fly's deprivation window.
-  Exclude deprived flies sleeping more than 5% during that window, keep controls,
-  and export the exclusion audit.”
-- “Compare sleep during the first three hours after deprivation ends, using the
-  aligned rebound window. Show per-fly values and run a two-sided Mann–Whitney
-  test between control and deprived flies.”
-- “Use my reviewed death/censor endpoint CSV for sleep summaries, keeping
-  temperature and OD600 groups separate.”
-- “Retrieve the plots, summary tables, and provenance for the completed analysis.”
-
-Replace example paths with files inside your configured data roots. The client
-uses the available MCP tools to inspect inputs and preview a recipe before
-running it. Required metadata, time alignment, and analysis windows must be
-resolved before execution; rebound comparisons require recorded post-deprivation
-sleep data. See [client configuration](docs/CLIENT_CONFIGURATION.md) for setup.
