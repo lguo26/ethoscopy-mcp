@@ -87,7 +87,15 @@ AI-assistance attribution. Contributions are welcome under the process in
 research datasets and generated experiment artifacts are not distributed by
 this repository and are not licensed by this software license.
 
-## Sleep analysis and group comparisons
+## Available Tools
+
+- **Survival analysis:** movement-based death detection, survival tables, and
+  Kaplan–Meier plots.
+- **Sleep analysis:** heatmaps, sleep time courses, and per-fly summaries.
+- **Group comparisons:** sleep and rebound quantification, with optional
+  Mann–Whitney tests.
+- **Sleep-deprivation quality checks:** metadata-driven deprivation windows and
+  recorded per-fly exclusions.
 
 The typed `sleep` recipe reuses saved Ethoscopy sleep annotations, applies reviewed
 death/censor endpoints (including manual corrections), and exports sleep profiles,
@@ -98,3 +106,29 @@ See [Sleep analysis](docs/SLEEP_ANALYSIS.md) and the
 [synthetic example](examples/synthetic_sleep/README.md). A direct Ethoscopy notebook workflow also provides heatmaps, rebound quantification,
 optional Mann–Whitney tests and recorded sleep-deprivation exclusions. Activity
 analysis is not implemented. See [Notebook workflow](docs/NOTEBOOK_SLEEP.md).
+
+## Example Usage
+
+Once configured, you can ask Codex/Claude things like:
+
+- “Inspect the experiment in `/path/to/experiment` and show the available groups
+  and metadata.”
+- “Preview a survival analysis using `moving` and `walk`, with a 12-hour zero-run
+  threshold. Plot each OD600 group alongside PBS controls at the same temperature.”
+- “Create sleep heatmaps and time-course plots for control and sleep-deprived
+  flies using the saved sleep annotations.”
+- “Use `stimulus_range` metadata to identify each fly's deprivation window.
+  Exclude deprived flies sleeping more than 5% during that window, keep controls,
+  and export the exclusion audit.”
+- “Compare sleep during the first three hours after deprivation ends, using the
+  aligned rebound window. Show per-fly values and run a two-sided Mann–Whitney
+  test between control and deprived flies.”
+- “Use my reviewed death/censor endpoint CSV for sleep summaries, keeping
+  temperature and OD600 groups separate.”
+- “Retrieve the plots, summary tables, and provenance for the completed analysis.”
+
+Replace example paths with files inside your configured data roots. The client
+uses the available MCP tools to inspect inputs and preview a recipe before
+running it. Required metadata, time alignment, and analysis windows must be
+resolved before execution; rebound comparisons require recorded post-deprivation
+sleep data. See [client configuration](docs/CLIENT_CONFIGURATION.md) for setup.
