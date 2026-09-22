@@ -11,10 +11,12 @@ typed analysis recipes, run approved Ethoscopy workflows, and retrieve compact
 results and artifact references without sending raw behavioural datasets to a
 language model.
 
-[Supported Analyses](#supported-analyses) · [Quick Start](#quick-start) · [Available Tools](#available-tools) · [Example Usage](#example-usage)
+[Supported Analyses](#supported-analyses) · [Reproducibility](#reproducibility) · [Quick Start](#quick-start) · [Available Tools](#available-tools) · [Example Usage](#example-usage)
 
 ## Features
 
+- **Reproducibility:** explicit analysis recipes, hashed inputs, immutable source
+  files, and verified outputs with provenance.
 - **Sleep analysis:** heatmaps, sleep time courses, and per-fly summaries.
 - **Sleep-deprivation quality checks:** metadata-driven deprivation windows and
   recorded per-fly exclusions.
@@ -40,6 +42,28 @@ Try the [synthetic survival example](examples/synthetic_survival/README.md),
 [synthetic sleep example](examples/synthetic_sleep/README.md), or
 [synthetic deprivation and rebound example](examples/synthetic_notebook_sleep/README.md)
 without private experiment data.
+
+## Reproducibility
+
+Each analysis follows **inspect → preview → approve the exact recipe hash →
+run → retrieve**. The service records what was analysed and how, so results can
+be reviewed and rerun through either MCP or the shared Python service.
+
+- **Explicit settings:** recipes specify cohorts, grouping, identity mapping,
+  time alignment, analysis parameters, and requested outputs.
+- **Verified inputs:** source files and auxiliary inputs are content-hashed.
+  Execution revalidates the preview hash and checks that inputs remain unchanged.
+- **Recorded provenance:** `provenance.json` saves the recipe, input hashes,
+  Ethoscopy and SciPy versions, warnings, and output hashes alongside results.
+- **Repeatable retrieval:** identical validated runs reuse saved artifacts;
+  retrieval checks their paths, sizes, and hashes. Exports beside the source
+  pickle keep plots, tables, and provenance together.
+
+Keep the original inputs, overlays, recipe, and software environment to rerun
+an analysis. Provenance records versions but does not package the environment.
+Fresh notebook-style sleep plots may vary in bootstrap confidence intervals
+and point jitter; cached artifacts remain byte-verified. Reproducible execution
+supports review but does not establish that a comparison is scientifically valid.
 
 ## Status
 
