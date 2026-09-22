@@ -153,4 +153,15 @@ Example request to an assistant:
 
 The workflow is inspect → preview → exact current hash → run → retrieve.
 Source, mapping, recipe and survival-engine changes invalidate approval hashes.
+
+## Upgrading to Ethoscopy 2.4
+
 Restart the MCP server after upgrading so it loads the updated implementation.
+The running process must use Ethoscopy 2.4.0. Update older recipes that set
+`cumulative: true` to `false`, then generate and review a fresh preview.
+
+Survival approval hashes include the loaded engine version and adapter revision,
+so older cached results cannot substitute for a new 2.4 analysis. Previously
+saved results remain available for retrieval. The detection defaults and
+elapsed-time interpretation are documented above under Recipe settings and
+Time and censoring.
