@@ -7,6 +7,9 @@ from ethoscopy_mcp.schemas import (
     ExperimentManifest,
     ExperimentSummary,
     SurvivalRecipe,
+    SleepRecipe,
+    SleepSettings,
+    NotebookSleepRecipe,
 )
 from ethoscopy_mcp.service import EthoscopyService
 
@@ -20,5 +23,8 @@ __all__ = [
     "ExperimentSummary",
     "Settings",
     "SurvivalRecipe",
+    "SleepRecipe",
+    "SleepSettings",
+    "NotebookSleepRecipe",
     "__version__",
 ]

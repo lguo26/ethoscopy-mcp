@@ -12,7 +12,7 @@ from ethoscopy_mcp.schemas import (
     ArtifactReference,
     ExperimentManifest,
     ExperimentSummary,
-    SurvivalRecipe,
+    AnalysisRecipe,
 )
 from ethoscopy_mcp.service import EthoscopyService
 
@@ -51,7 +51,7 @@ def create_server(
         "ethoscopy-mcp",
         description="Local-first, immutable Ethoscopy analysis tools",
         instructions=(
-            "Inspect trusted Ethoscopy files, preview survival recipes, and execute "
+            "Inspect trusted Ethoscopy files, preview survival or sleep recipes, and execute "
             "only an exactly approved recipe hash. Source files are immutable. Tools "
             "return summaries and artifact references, never raw behavioural rows."
         ),
@@ -65,16 +65,16 @@ def create_server(
 
     @server.tool(annotations=READ_ONLY, structured_output=True)
     def preview_analysis(
-        manifest: ExperimentManifest, recipe: SurvivalRecipe
+        manifest: ExperimentManifest, recipe: AnalysisRecipe
     ) -> AnalysisPreview:
-        """Validate a survival recipe and return its exact approval hash."""
+        """Validate a survival or sleep recipe and return its exact approval hash."""
 
         return get_service().preview_analysis(manifest, recipe)
 
     @server.tool(annotations=LOCAL_WRITE, structured_output=True)
     def run_analysis(
         manifest: ExperimentManifest,
-        recipe: SurvivalRecipe,
+        recipe: AnalysisRecipe,
         approved_recipe_hash: str,
     ) -> AnalysisRunResult:
         """Run a freshly revalidated recipe only when its hash exactly matches."""

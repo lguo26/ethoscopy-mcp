@@ -13,12 +13,15 @@ language model.
 
 ## Status
 
-Version `0.1.0a1` is a pre-alpha public preview. The local stdio MCP server can
-inspect trusted Ethoscopy pickles, preview a transfer-aware survival recipe,
-run an exactly approved recipe into immutable, content-addressed artifacts,
-and retrieve verified result metadata. Broader recipe types and further
-scientific regression coverage remain on the roadmap. The immediate next
-milestones are the public pre-release and a verified end-to-end MCP client run.
+Version `0.1.0a1` is a pre-alpha public preview. The local stdio MCP server
+supports survival analysis, reviewed-endpoint sleep summaries, and notebook-style
+sleep plots and comparisons. Recipes are previewed before execution, inputs stay
+immutable, and saved results include verified artifacts and provenance.
+
+Sleep-deprivation QC uses the ethoscope's `stimulus_range` metadata, with explicit
+time alignment and a per-fly exclusion audit. There is no fixed deprivation
+window. Activity analysis and additional scientific workflows remain on the
+[roadmap](docs/ROADMAP.md).
 
 ## Principles
 
@@ -83,3 +86,15 @@ AI-assistance attribution. Contributions are welcome under the process in
 `GPL-3.0-only`. Third-party packages remain under their own licenses. Private
 research datasets and generated experiment artifacts are not distributed by
 this repository and are not licensed by this software license.
+
+## Sleep analysis and group comparisons
+
+The typed `sleep` recipe reuses saved Ethoscopy sleep annotations, applies reviewed
+death/censor endpoints (including manual corrections), and exports sleep profiles,
+per-fly summaries and descriptive comparison plots. Temperature and OD600 remain
+separate by default. Python and MCP call the same shared implementation.
+
+See [Sleep analysis](docs/SLEEP_ANALYSIS.md) and the
+[synthetic example](examples/synthetic_sleep/README.md). A direct Ethoscopy notebook workflow also provides heatmaps, rebound quantification,
+optional Mann–Whitney tests and recorded sleep-deprivation exclusions. Activity
+analysis is not implemented. See [Notebook workflow](docs/NOTEBOOK_SLEEP.md).

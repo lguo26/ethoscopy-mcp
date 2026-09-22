@@ -11,7 +11,8 @@
 ## Phase 2 — Scientific workflows
 
 - [x] Experiment inspection and validation
-- [ ] Sleep summary and profile
+- [x] Sleep summary/profile and descriptive group comparisons using saved annotations and reviewed endpoints
+- [x] Direct notebook sleep workflow, deprivation QC and optional two-group test
 - [ ] Activity profile
 - [x] Transfer-aware survival analysis
 - [x] Immune/S. aureus regression using a private external fixture
@@ -86,7 +87,7 @@ outcome.
 
 ### 5. Add workflows one at a time
 
-- Implement sleep summary/profile as the next typed recipe.
+- Sleep summary/profile is implemented; see `SLEEP_ANALYSIS.md` for scope and assumptions.
 - Follow with activity profiles after sleep validation is complete.
 - Apply the same preview, exact-hash approval, immutable-source, artifact, and
   provenance rules used by survival analysis.

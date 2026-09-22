@@ -15,7 +15,7 @@ Resolve a proposed recipe without executing it. Return cohorts, derived
 columns, exclusions, timing, methods, parameters, expected artifacts, warnings,
 and unresolved assumptions.
 
-The first implemented recipe is transfer-aware survival preview. It validates
+Transfer-aware survival preview validates
 that the mapping covers all metadata IDs, preserves consistency fields within
 each canonical individual, contains at most one segment per individual/date,
 and references the movement columns required by the detector. It hashes the
@@ -24,10 +24,12 @@ recipe together with all source and overlay hashes for approval.
 ### `run_analysis(manifest, recipe, approved_recipe_hash)`
 
 Execute only a freshly revalidated recipe whose hash exactly matches the
-approved preview. Transfer-aware survival is the first implemented execution
-type. It writes CSV/PNG/SVG artifacts and provenance atomically to a
+approved preview. Survival and interval sleep recipes write CSV/PNG/SVG outputs;
+notebook sleep additionally supports PDF plots. Artifacts and provenance are written atomically to a
 content-addressed run directory, then verifies that sources and overlays are
-unchanged. Sleep and activity recipes remain planned.
+unchanged. Sleep recipes support reviewed endpoint truncation, time courses,
+per-fly summaries and descriptive group comparisons. See
+[Sleep analysis](SLEEP_ANALYSIS.md). Activity recipes remain planned.
 
 ## Retrieval
 
@@ -55,3 +57,8 @@ request
   → immutable analysis run
   → results, artifacts, and provenance
 ```
+
+The `sleep_notebook` recipe directly calls Ethoscopy heatmap/overtime/quantify
+methods, optionally screens failed sleep deprivation, curates dead animals,
+applies explicit metadata exclusions and runs one requested Mann–Whitney test.
+See [Notebook sleep workflow](NOTEBOOK_SLEEP.md).

@@ -24,6 +24,9 @@ from ethoscopy_mcp.schemas import (
     ArtifactReference,
     GroupOutcome,
     SurvivalRecipe,
+    SleepRecipe,
+    NotebookSleepRecipe,
+    AnalysisRecipe,
 )
 
 
@@ -34,7 +37,7 @@ PROVENANCE_NAME = "provenance.json"
 def execute_survival(
     registry: SourceRegistry,
     preview: AnalysisPreview,
-    recipe: SurvivalRecipe,
+    recipe: AnalysisRecipe,
     approved_recipe_hash: str,
 ) -> AnalysisRunResult:
     """Execute exactly one approved recipe into a content-addressed directory."""
@@ -61,11 +64,26 @@ def execute_survival(
 
     temporary = Path(tempfile.mkdtemp(prefix=f".{analysis_id}-", dir=artifact_root))
     try:
-        table, figure = _run_recipe(preview, recipe)
-        requested_artifacts = _write_requested_artifacts(
-            table, figure, recipe, temporary, run_directory
-        )
-        group_outcomes = _group_outcomes(preview, table)
+        if isinstance(recipe, NotebookSleepRecipe):
+            from ethoscopy_mcp.notebook_sleep import write_notebook_artifacts
+            requested_artifacts = write_notebook_artifacts(preview, recipe, temporary, run_directory)
+            group_outcomes = ()
+        elif isinstance(recipe, SleepRecipe):
+            from ethoscopy_mcp.sleep import prepare_sleep, summarize_sleep
+            observations, subjects, _ = prepare_sleep(
+                preview.sources, preview.identity_overlay.source,
+                preview.auxiliary_sources[0], recipe,
+            )
+            tables = summarize_sleep(observations, subjects, recipe)
+            requested_artifacts = _write_sleep_artifacts(tables, recipe, temporary, run_directory)
+            # Sleep summaries must never masquerade as survival outcome counts.
+            group_outcomes = ()
+        else:
+            table, figure = _run_recipe(preview, recipe)
+            requested_artifacts = _write_requested_artifacts(
+                table, figure, recipe, temporary, run_directory
+            )
+            group_outcomes = _group_outcomes(preview, table)
         created_at = datetime.now(timezone.utc)
         provenance_path = run_directory / PROVENANCE_NAME
         provenance = {
@@ -76,8 +94,10 @@ def execute_survival(
             "recipe": recipe.model_dump(mode="json"),
             "sources": [source.model_dump(mode="json") for source in preview.sources],
             "identity_overlay": preview.identity_overlay.source.model_dump(mode="json"),
+            "auxiliary_sources": [s.model_dump(mode="json") for s in preview.auxiliary_sources],
             "source_hashes_verified": True,
             "ethoscopy_version": _package_version("ethoscopy"),
+            "scipy_version": _package_version("scipy"),
             "warnings": [warning.model_dump(mode="json") for warning in preview.warnings],
             "group_outcomes": [outcome.model_dump(mode="json") for outcome in group_outcomes],
             "artifacts": [artifact.model_dump(mode="json") for artifact in requested_artifacts],
@@ -388,6 +408,8 @@ def _assert_sources_unchanged(
     for source in preview.sources:
         registry.assert_unchanged(source)
     registry.assert_auxiliary_unchanged(preview.identity_overlay.source)
+    for source in preview.auxiliary_sources:
+        registry.assert_auxiliary_unchanged(source)
 
 
 def _artifact_reference(
@@ -439,3 +461,23 @@ def _package_version(package: str) -> str | None:
         return importlib_metadata.version(package)
     except importlib_metadata.PackageNotFoundError:
         return None
+
+
+def _write_sleep_artifacts(tables, recipe, temporary, run_directory):
+    from ethoscopy_mcp.sleep import plot_sleep
+    import matplotlib.pyplot as plt
+    references = []
+    for request in recipe.output_requests:
+        filename = _output_filename(request.name, request.format)
+        path = temporary / filename
+        if request.artifact_type == "table":
+            tables[request.dataset].to_csv(path, index=False)
+        else:
+            figure = plot_sleep(tables, recipe, request.dataset)
+            try:
+                figure.savefig(path, dpi=300, facecolor="white")
+            finally:
+                plt.close(figure)
+        references.append(_artifact_reference(path, run_directory / filename,
+            artifact_type=request.artifact_type, format_name=request.format, name=request.name))
+    return tuple(references)

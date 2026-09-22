@@ -26,7 +26,9 @@ from ethoscopy_mcp.schemas import (
     AnalysisPreview,
     AnalysisRunResult,
     ArtifactReference,
-    SurvivalRecipe,
+    AnalysisRecipe,
+    SleepRecipe,
+    NotebookSleepRecipe,
 )
 
 
@@ -95,17 +97,23 @@ class EthoscopyService:
     def preview_analysis(
         self,
         manifest: ExperimentManifest,
-        recipe: SurvivalRecipe,
+        recipe: AnalysisRecipe,
     ) -> AnalysisPreview:
         """Validate and summarize an analysis recipe without executing it."""
 
         inspection = self.inspect_experiment(manifest)
+        if isinstance(recipe, NotebookSleepRecipe):
+            from ethoscopy_mcp.notebook_sleep import preview_notebook_sleep
+            return preview_notebook_sleep(self.registry, inspection, recipe)
+        if isinstance(recipe, SleepRecipe):
+            from ethoscopy_mcp.sleep import preview_sleep
+            return preview_sleep(self.registry, inspection, recipe)
         return preview_survival(self.registry, inspection, recipe)
 
     def run_analysis(
         self,
         manifest: ExperimentManifest,
-        recipe: SurvivalRecipe,
+        recipe: AnalysisRecipe,
         approved_recipe_hash: str,
     ) -> AnalysisRunResult:
         """Execute only the recipe whose freshly validated hash was approved."""

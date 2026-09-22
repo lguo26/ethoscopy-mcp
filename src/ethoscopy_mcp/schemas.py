@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -146,8 +146,10 @@ class DeathDetectionSettings(StrictModel):
 
 class OutputRequest(StrictModel):
     artifact_type: Literal["table", "plot"]
-    format: Literal["csv", "png", "svg", "json"]
+    format: Literal["csv", "png", "svg", "pdf", "json"]
     name: str = Field(min_length=1)
+    dataset: Literal["primary", "timecourse", "individuals", "comparison", "heatmap", "statistics", "exclusions"] = "primary"
+    group_label: str | None = None
 
 
 class SurvivalRecipe(StrictModel):
@@ -166,6 +168,161 @@ class SurvivalRecipe(StrictModel):
     output_requests: tuple[OutputRequest, ...] = ()
     assumptions: tuple[str, ...] = ()
     context_warnings: tuple[str, ...] = ()
+
+
+    @model_validator(mode="after")
+    def validate_survival_outputs(self) -> "SurvivalRecipe":
+        for request in self.output_requests:
+            if request.dataset != "primary" or request.group_label is not None:
+                raise ValueError("Survival outputs use dataset=primary without group_label")
+            if (request.artifact_type, request.format) not in {("table", "csv"), ("plot", "png"), ("plot", "svg")}:
+                raise ValueError("Survival supports CSV tables and PNG/SVG plots")
+        return self
+
+
+class SleepSettings(StrictModel):
+    asleep_column: str = "asleep"
+    sample_period_seconds: float = Field(default=10, gt=0, allow_inf_nan=False)
+    bin_minutes: float = Field(default=30, gt=0, allow_inf_nan=False)
+    start_hours: float = Field(default=0, ge=0, allow_inf_nan=False)
+    end_hours: float | None = Field(default=None, gt=0, allow_inf_nan=False)
+
+    @model_validator(mode="after")
+    def valid_window(self) -> "SleepSettings":
+        if self.end_hours is not None and self.end_hours <= self.start_hours:
+            raise ValueError("end_hours must exceed start_hours")
+        return self
+
+
+class SleepRecipe(StrictModel):
+    schema_version: str = SCHEMA_VERSION
+    recipe_id: str = Field(min_length=1, pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+    experiment_id: str = Field(min_length=1)
+    analysis_type: Literal["sleep"] = "sleep"
+    cohort_filters: dict[str, ScalarValue]
+    group: GroupDefinition
+    identity_overlay: IdentityOverlay
+    baseline_alignment: BaselineAlignment
+    time_alignment: TimeAlignment
+    # Deliberately explicit: no automatic death inference or implicit inclusion
+    # of terminal immobility in sleep. The CSV records reviewed event/censor times.
+    endpoints_path: Path
+    strata_columns: tuple[str, ...] = ("temperature", "OD600")
+    sleep: SleepSettings = Field(default_factory=SleepSettings)
+    output_requests: tuple[OutputRequest, ...] = ()
+    assumptions: tuple[str, ...] = ()
+    context_warnings: tuple[str, ...] = ()
+
+
+class AnalysisWindow(StrictModel):
+    start_hours: float = Field(default=0, ge=0, allow_inf_nan=False)
+    end_hours: float | None = Field(default=None, gt=0, allow_inf_nan=False)
+
+    @model_validator(mode="after")
+    def valid_window(self) -> "AnalysisWindow":
+        if self.end_hours is not None and self.end_hours <= self.start_hours:
+            raise ValueError("end_hours must exceed start_hours")
+        return self
+
+
+class MannWhitneySettings(StrictModel):
+    group_labels: tuple[str, str]
+    method: Literal["auto", "exact", "asymptotic"] = "auto"
+    alternative: Literal["two-sided", "less", "greater"] = "two-sided"
+
+    @model_validator(mode="after")
+    def distinct_groups(self) -> "MannWhitneySettings":
+        if self.group_labels[0] == self.group_labels[1]:
+            raise ValueError("Statistical comparison needs two different groups")
+        return self
+
+
+class DeprivationMetadata(StrictModel):
+    path: Path | None = None
+    join_columns: tuple[str, ...] = Field(default=("machine_name", "date"), min_length=1)
+    range_columns: tuple[str, ...] = ("stimulus_range",)
+    start_hours_column: str = "deprivation_start_hours"
+    end_hours_column: str = "deprivation_end_hours"
+    zt0_column: str = "zt0"
+    date_column: str = "date"
+    time_column: str = "time"
+    reference_hour: float | None = Field(default=None, ge=0, lt=24, allow_inf_nan=False)
+    timezone: str | None = None
+
+
+class ResolvedDeprivationWindow(StrictModel):
+    start_hours: float
+    end_hours: float
+    source: str
+    animals: int = Field(ge=1)
+
+
+class SleepDeprivationQC(StrictModel):
+    target_group_label: str
+    window: AnalysisWindow | None = None
+    metadata: DeprivationMetadata = Field(default_factory=DeprivationMetadata)
+    maximum_sleep_fraction: float = Field(default=0.05, ge=0, lt=1, allow_inf_nan=False)
+
+    @model_validator(mode="after")
+    def finite_window(self) -> "SleepDeprivationQC":
+        if self.window is not None and self.window.end_hours is None:
+            raise ValueError("An explicit fallback window requires a finite end time")
+        return self
+
+
+class MetadataExclusion(StrictModel):
+    column: str
+    values: tuple[ScalarValue, ...] = Field(min_length=1)
+    reason: str = Field(min_length=1)
+    stage: Literal["before_qc", "after_curate"] = "before_qc"
+
+
+class CurationSettings(StrictModel):
+    movement_column: str = "moving"
+    time_window_hours: int = Field(default=24, gt=0)
+    proportion_immobile: float = Field(default=0.01, ge=0, le=1, allow_inf_nan=False)
+    resolution: int = Field(default=24, gt=0)
+
+    @model_validator(mode="after")
+    def valid_resolution(self) -> "CurationSettings":
+        if self.resolution > self.time_window_hours:
+            raise ValueError("Curation resolution must not exceed time_window_hours")
+        return self
+
+
+class NotebookSleepRecipe(SleepRecipe):
+    """Direct public Ethoscopy calls, as used in the supplied sleep notebook."""
+    analysis_type: Literal["sleep_notebook"] = "sleep_notebook"
+    endpoints_path: Path | None = None
+    endpoint_policy: Literal["untrimmed", "reviewed", "curate"]
+    strata_columns: tuple[str, ...] = ()
+    profile_window: AnalysisWindow = Field(default_factory=AnalysisWindow)
+    quantification_window: AnalysisWindow = Field(default_factory=AnalysisWindow)
+    avg_window_minutes: int = Field(default=30, gt=0)
+    day_length_hours: float = Field(default=24, gt=0, allow_inf_nan=False)
+    lights_off_hours: float = Field(default=12, gt=0, allow_inf_nan=False)
+    title: str = "Sleep analysis"
+    deprivation_qc: SleepDeprivationQC | None = None
+    exclusions: tuple[MetadataExclusion, ...] = ()
+    curation: CurationSettings = Field(default_factory=CurationSettings)
+    comparison: MannWhitneySettings | None = None
+
+    @model_validator(mode="after")
+    def validate_notebook_settings(self) -> "NotebookSleepRecipe":
+        if (self.endpoints_path is not None) != (self.endpoint_policy == "reviewed"):
+            raise ValueError("Supply endpoints_path exactly when endpoint_policy is reviewed")
+        if self.lights_off_hours >= self.day_length_hours:
+            raise ValueError("lights_off_hours must be below day_length_hours")
+        if self.strata_columns and self.comparison is not None:
+            raise ValueError("Use fixed cohort filters or explicit composite groups for a statistical comparison; implicit pooling across strata is forbidden")
+        # The direct library mode uses its own windows and annotation means;
+        # interval-based summary settings must not silently affect this mode.
+        if self.sleep != SleepSettings():
+            raise ValueError("sleep_notebook uses profile_window/quantification_window and avg_window_minutes, not interval sleep settings")
+        return self
+
+
+AnalysisRecipe = Annotated[SurvivalRecipe | SleepRecipe | NotebookSleepRecipe, Field(discriminator="analysis_type")]
 
 
 class CohortPreview(StrictModel):
@@ -214,7 +371,10 @@ class AnalysisPreview(StrictModel):
     cohorts: tuple[CohortPreview, ...]
     baseline_alignment: BaselineAlignment
     time_alignment: TimeAlignment
-    death_detection: DeathDetectionSettings
+    death_detection: DeathDetectionSettings | None = None
+    sleep: SleepSettings | None = None
+    auxiliary_sources: tuple[SourceFile, ...] = ()
+    deprivation_windows: tuple[ResolvedDeprivationWindow, ...] = ()
     transformations: tuple[TransformationPreview, ...]
     expected_artifacts: tuple[ArtifactPreview, ...]
     assumptions: tuple[str, ...]
