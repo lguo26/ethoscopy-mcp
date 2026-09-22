@@ -29,14 +29,15 @@ language model.
 | --- | --- | --- |
 | [Sleep summaries](docs/SLEEP_ANALYSIS.md) | `sleep` | Sleep profiles, per-fly summaries, and descriptive group comparisons using reviewed death/censor endpoints. |
 | [Sleep plots and deprivation analysis](docs/NOTEBOOK_SLEEP.md) | `sleep_notebook` | Heatmaps, sleep time courses, rebound comparisons, optional Mann–Whitney tests, and SD quality checks using `stimulus_range`. |
-| Survival analysis | `survival` | Movement-based death detection, survival tables, and Kaplan–Meier plots. |
+| [Survival analysis](docs/SURVIVAL_ANALYSIS.md) | `survival` | Movement-based death detection, death-table CSVs, Kaplan–Meier plots with confidence intervals and censor marks, and group death/censor counts. |
 
 All three workflows use `preview_analysis` and `run_analysis` from the
 [five available MCP tools](#available-tools). You can request them in plain
 language; see [Example Usage](#example-usage). Python and MCP use the same
 shared implementation.
 
-Try the [synthetic sleep example](examples/synthetic_sleep/README.md) or
+Try the [synthetic survival example](examples/synthetic_survival/README.md),
+[synthetic sleep example](examples/synthetic_sleep/README.md), or
 [synthetic deprivation and rebound example](examples/synthetic_notebook_sleep/README.md)
 without private experiment data.
 
@@ -196,6 +197,18 @@ sleep data. See [client configuration](docs/CLIENT_CONFIGURATION.md) for setup.
 All five tools are available through the local stdio adapter and the Python
 service. Execution revalidates inputs, operates on working copies, and saves
 results with provenance. Retrieval verifies artifact paths, sizes, and hashes.
+
+Every successful `run_analysis` also exports plots, tables, and provenance into
+a new `<analysis_id>_exports` folder beside the first source pickle in the
+manifest. This applies to survival and both sleep workflows. The source folder
+must be writable. The response's `export_directory` identifies this convenient
+copy; canonical artifact references and `get_analysis`/`get_artifact` continue
+to use `ETHOSCOPY_ARTIFACT_ROOT`. For multiple source folders, exports go beside
+the first source only. Recipe hashes in folder names keep different runs apart.
+Repeating an identical run verifies and reuses its export folder; changed,
+missing, or symlinked export files are rejected rather than overwritten. If
+exporting fails, the canonical run remains available for retrieval and retry.
+Restart the MCP server after installing this update to activate this behavior.
 
 ## Principles
 

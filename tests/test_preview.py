@@ -57,9 +57,15 @@ class SurvivalPreviewTests(unittest.TestCase):
             self.assertEqual(retrieved_artifact, result.artifacts[0])
             self.assertEqual(len(result.artifacts), 4)
             self.assertTrue(result.provenance_path.is_file())
+            self.assertEqual(result.export_directory.parent, first.parent)
+            self.assertEqual(result.export_directory, repeated.export_directory)
             for artifact in result.artifacts:
                 self.assertTrue(artifact.path.is_file())
                 self.assertEqual(sha256_file(artifact.path), artifact.sha256)
+                self.assertEqual(
+                    sha256_file(result.export_directory / artifact.path.name),
+                    artifact.sha256,
+                )
             for path, digest in hashes_before.items():
                 self.assertEqual(sha256_file(path), digest)
 

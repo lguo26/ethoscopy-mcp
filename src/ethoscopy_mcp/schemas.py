@@ -407,6 +407,7 @@ class AnalysisRunResult(StrictModel):
     recipe_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
     created_at: datetime
     run_directory: Path
+    export_directory: Path | None = None
     reused_existing: bool
     artifacts: tuple[ArtifactReference, ...]
     group_outcomes: tuple[GroupOutcome, ...]

@@ -11,6 +11,7 @@ import pandas as pd
 
 from ethoscopy_mcp.config import Settings
 from ethoscopy_mcp.execution import execute_survival, load_analysis_result
+from ethoscopy_mcp.exports import export_analysis
 from ethoscopy_mcp.errors import InvalidExperimentError
 from ethoscopy_mcp.loaders import load_behaviour_pickle
 from ethoscopy_mcp.preview import preview_survival
@@ -119,9 +120,14 @@ class EthoscopyService:
         """Execute only the recipe whose freshly validated hash was approved."""
 
         preview = self.preview_analysis(manifest, recipe)
-        return execute_survival(
+        result = execute_survival(
             self.registry, preview, recipe, approved_recipe_hash
         )
+        # Validate canonical artifacts before copying, including cached runs.
+        verified = self.get_analysis(result.analysis_id)
+        source = self.settings.resolve_source(preview.sources[0].path)
+        destination = export_analysis(source, verified)
+        return result.model_copy(update={"export_directory": destination})
 
     def get_analysis(self, analysis_id: str) -> AnalysisRunResult:
         """Return a completed run after validating all referenced artifacts."""
