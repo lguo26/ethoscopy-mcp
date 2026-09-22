@@ -33,7 +33,54 @@ window. Activity analysis and additional scientific workflows remain on the
 - Results include provenance, warnings, units, exclusions, and artifact hashes.
 - Raw behavioural rows are not returned to the model by default.
 
-## MCP tool surface
+## Prerequisites
+
+- **Python 3.12 or newer**, with an isolated virtual environment. Installing
+  this package installs its declared dependencies, including Ethoscopy (`>=2.2,<3`)
+  and MCP (`>=2,<3`).
+- **An MCP client with local stdio support** to launch the server, or Python
+  to use the service directly.
+- **Trusted local Ethoscopy pickle files** with the behavioural columns and
+  metadata required by your analysis. Sleep workflows require saved sleep
+  annotations; metadata-driven deprivation checks require `stimulus_range`
+  in the saved metadata or an exported acquisition-metadata CSV.
+- **Configured local directories:** set `ETHOSCOPY_DATA_ROOTS` to your experiment
+  directories and `ETHOSCOPY_ARTIFACT_ROOT` to an existing, writable output
+  directory.
+
+Some workflows also require CSV overlays for animal identity or reviewed
+death/censor endpoints. See the [quick start](docs/QUICKSTART.md) for installation
+and [client configuration](docs/CLIENT_CONFIGURATION.md) for connecting a client.
+
+## Installation
+
+On Linux or macOS, with Git and Python 3.12 or newer installed:
+
+```bash
+git clone https://github.com/lguo26/ethoscopy-mcp.git
+cd ethoscopy-mcp
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e .
+```
+
+Create a local output directory and configure your data paths, replacing the
+example paths with your own:
+
+```bash
+mkdir -p /absolute/path/to/analysis-output
+export ETHOSCOPY_DATA_ROOTS="/absolute/path/to/experiments"
+export ETHOSCOPY_ARTIFACT_ROOT="/absolute/path/to/analysis-output"
+```
+
+Your experiment directory should contain trusted Ethoscopy `.pkl` files and any
+required metadata CSVs. Configure your MCP client to launch
+`/absolute/path/to/ethoscopy-mcp/.venv/bin/ethoscopy-mcp`, with the two environment
+variables above included in its server configuration. See
+[client configuration](docs/CLIENT_CONFIGURATION.md) for the configuration
+example. The client starts the stdio server when it connects.
+
+## Available Tools
 
 ```text
 inspect_experiment
@@ -87,7 +134,7 @@ AI-assistance attribution. Contributions are welcome under the process in
 research datasets and generated experiment artifacts are not distributed by
 this repository and are not licensed by this software license.
 
-## Available Tools
+## Features
 
 - **Survival analysis:** movement-based death detection, survival tables, and
   Kaplan–Meier plots.
@@ -99,8 +146,8 @@ this repository and are not licensed by this software license.
 
 The typed `sleep` recipe reuses saved Ethoscopy sleep annotations, applies reviewed
 death/censor endpoints (including manual corrections), and exports sleep profiles,
-per-fly summaries and descriptive comparison plots. Temperature and OD600 remain
-separate by default. Python and MCP call the same shared implementation.
+per-fly summaries and descriptive comparison plots. Python and MCP call the same
+shared implementation.
 
 See [Sleep analysis](docs/SLEEP_ANALYSIS.md) and the
 [synthetic example](examples/synthetic_sleep/README.md). A direct Ethoscopy notebook workflow also provides heatmaps, rebound quantification,
