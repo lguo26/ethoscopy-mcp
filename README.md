@@ -55,7 +55,7 @@ window. Activity analysis and additional scientific workflows remain on the
 ## Prerequisites
 
 - **Python 3.12 or newer**, with an isolated virtual environment. Installing
-  this package installs its declared dependencies, including Ethoscopy (`>=2.2,<3`)
+  this package installs its declared dependencies, including Ethoscopy (`==2.4.0`)
   and MCP (`>=2,<3`).
 - **An MCP client with local stdio support** to launch the server, or Python
   to use the service directly.
@@ -244,3 +244,21 @@ AI-assistance attribution. Contributions are welcome under the process in
 `GPL-3.0-only`. Third-party packages remain under their own licenses. Private
 research datasets and generated experiment artifacts are not distributed by
 this repository and are not licensed by this software license.
+
+### Survival settings matching Ethoscopy 2.4 notebooks
+
+Survival analysis requires Ethoscopy 2.4.0 in the running MCP process. Restart
+or reconnect the server after upgrading. The default recipe calls
+`km_death_table` and `km_survival_plot` with `moving`, secondary `walk`,
+`time_window=24`, `proportion_immobile=0.01`, and `zero_run_hours=12`.
+No `min_coverage` override is applied: incomplete final windows are evaluated
+as in the notebook. Either movement column can trigger detection.
+
+The table reports hours and the plot days from each subject's first retained
+sample. `cumulative` must be false; old recipes with true must be re-previewed
+with false. Baseline and explicit source-time alignment still apply before
+analysis. These are not automatically times since injection.
+
+Survival approval hashes include the loaded engine version and adapter revision,
+so older cached results cannot substitute for a new 2.4 analysis. Previously
+saved results remain available for retrieval.

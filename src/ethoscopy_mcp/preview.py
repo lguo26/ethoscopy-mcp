@@ -6,6 +6,7 @@ import hashlib
 import json
 from typing import Any
 
+import ethoscopy as etho
 import pandas as pd
 
 from ethoscopy_mcp.errors import InvalidExperimentError
@@ -29,6 +30,11 @@ def preview_survival(
     inspection: ExperimentSummary,
     recipe: SurvivalRecipe,
 ) -> AnalysisPreview:
+    if etho.__version__ != "2.4.0":
+        raise InvalidExperimentError(
+            "Survival analysis requires loaded Ethoscopy 2.4.0; "
+            "restart ethoscopy-mcp after upgrading its environment."
+        )
     if recipe.experiment_id != inspection.experiment_id:
         raise InvalidExperimentError(
             "Recipe experiment_id does not match the inspected experiment"
@@ -126,7 +132,8 @@ def preview_survival(
             description=(
                 f"Subtract {recipe.time_alignment.subtract_hours:g} hours from "
                 f"{recipe.time_alignment.source_basis} to produce "
-                f"{recipe.time_alignment.output_basis}."
+                f"{recipe.time_alignment.output_basis}. Survival output then uses "
+                "elapsed time from each subject's first retained sample."
             ),
         ),
         TransformationPreview(
@@ -336,6 +343,8 @@ def _recipe_hash(
     overlay_hash: str,
 ) -> str:
     payload = {
+        "survival_engine": "notebook-2.4-v1",
+        "ethoscopy_version": etho.__version__,
         "recipe": recipe.model_dump(mode="json"),
         "source_hashes": [source.sha256 for source in inspection.sources],
         "overlay_hash": overlay_hash,

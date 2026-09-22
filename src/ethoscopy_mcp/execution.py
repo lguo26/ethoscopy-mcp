@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from importlib import metadata as importlib_metadata
-import inspect
 import json
 from pathlib import Path
 import re
@@ -96,7 +95,7 @@ def execute_survival(
             "identity_overlay": preview.identity_overlay.source.model_dump(mode="json"),
             "auxiliary_sources": [s.model_dump(mode="json") for s in preview.auxiliary_sources],
             "source_hashes_verified": True,
-            "ethoscopy_version": _package_version("ethoscopy"),
+            "ethoscopy_version": etho.__version__,
             "scipy_version": _package_version("scipy"),
             "warnings": [warning.model_dump(mode="json") for warning in preview.warnings],
             "group_outcomes": [outcome.model_dump(mode="json") for outcome in group_outcomes],
@@ -253,30 +252,19 @@ def _run_recipe(
         "prop_immobile": death.proportion_immobile,
         "zero_run_hours": death.zero_run_hours,
     }
-    modern_survival_api = (
-        "meta_cols" in inspect.signature(working.km_death_table).parameters
-    )
-    if modern_survival_api:
-        # Ethoscopy >=2.4 names the cross-session identity columns explicitly.
-        subject_columns = ["machine_name", "region_id"]
-        table = working.km_death_table(
-            **death_settings,
-            subject_cols=subject_columns,
-            meta_cols=["species"],
-            time_unit="hours",
-        ).rename(columns={"species": "treatment"})
-        plot_api_settings = {
-            "subject_cols": subject_columns,
-            "censor_marks": True,
-            "grids": False,
-        }
-    else:
-        # Ethoscopy 2.2/2.3 infer the same identity from machine_name and ROI.
-        death_settings["cumulative"] = death.cumulative
-        table = working.km_death_table(
-            **death_settings, time_unit="hours"
-        ).rename(columns={"genotype": "treatment"})
-        plot_api_settings = {"censoring_marks": True, "grid": False}
+    # Use the same 2.4 defaults as the notebook: no min_coverage override.
+    subject_columns = ["machine_name", "region_id"]
+    table = working.km_death_table(
+        **death_settings,
+        subject_cols=subject_columns,
+        meta_cols=["species"],
+        time_unit="hours",
+    ).rename(columns={"species": "treatment"})
+    plot_api_settings = {
+        "subject_cols": subject_columns,
+        "censor_marks": True,
+        "grids": False,
+    }
     for column, value in recipe.cohort_filters.items():
         table[column] = value
 
@@ -357,7 +345,7 @@ def _group_outcomes(
 def _style_figure(figure: Any) -> None:
     figure.set_size_inches(12.8, 7.2)
     axis = figure.axes[0]
-    axis.set_xlabel("Time since injection (days)", fontsize=20, labelpad=12)
+    axis.set_xlabel("Days from first recorded sample", fontsize=20, labelpad=12)
     axis.set_ylabel("Survival probability", fontsize=20, labelpad=12)
     axis.title.set_fontsize(24)
     axis.tick_params(axis="both", labelsize=18)

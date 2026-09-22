@@ -57,7 +57,7 @@ def main(approve: bool = False) -> None:
         death_detection=DeathDetectionSettings(
             time_window_hours=12,
             zero_run_hours=6,
-            cumulative=True,
+            cumulative=False,
         ),
         output_requests=(
             OutputRequest(

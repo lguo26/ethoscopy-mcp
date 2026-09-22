@@ -11,7 +11,7 @@ license = "GPL-3.0-only"
 license-files = ["LICENSE"]
 requires-python = ">=3.12"
 dependencies = [
-  "ethoscopy>=2.2,<3",
+  "ethoscopy==2.4.0",
   "mcp>=2,<3",
   "pandas>=2.2,<3",
   "numpy>=1.26,<3",
