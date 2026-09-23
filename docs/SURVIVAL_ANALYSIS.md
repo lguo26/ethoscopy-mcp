@@ -1,7 +1,8 @@
 # Survival analysis
 
 Use `analysis_type: "survival"` with the same `preview_analysis` and
-`run_analysis` tools as sleep. Python callers use `SurvivalRecipe` and
+`run_analysis` tools as sleep, or the dedicated `run_kaplan_meier` tool.
+Python callers use `SurvivalRecipe` and
 `EthoscopyService`. Default runs call Ethoscopy 2.4.0's public `km_death_table` and
 `km_survival_plot` functions through the shared service. Reviewed runs use the
 same default estimates, then plot explicitly reviewed endpoints using Ethoscopy's
@@ -85,22 +86,24 @@ censored subjects, confidence intervals and censor marks.
 
 Use `group.column` and labelled `group.levels` for the treatment factor and
 `cohort_filters` for exact metadata selections, such as a single temperature.
-There is no survival `strata_columns` option; run separate filtered recipes to
-report temperature-specific curves. Check group counts in the preview.
+Run separate filtered recipes to report temperature-specific curves. Log-rank
+comparisons can use `strata_columns` within each comparison to adjust for
+temperature or other metadata. Check group counts in the preview.
 
 A dose filter also applies to controls: selecting OD600=0.1 excludes PBS animals
 recorded at OD600=0. Pooling temperatures or doses can confound group comparisons.
 Controls are not synthesized for conditions with no recorded control animals.
 Record known design limitations in `context_warnings` for preview and provenance.
 
-The current workflow reports descriptive survival curves and event counts. It
-does not run log-rank tests, Cox models, or multiple-comparison corrections.
-Optional endpoint review is described below.
+The workflow supports log-rank comparisons with Holm correction, documented
+below, as well as descriptive survival curves and event counts. Cox models are
+not included. Optional endpoint review is described below.
 
 ## Outputs and reporting
 
-Survival output requests use `dataset: "primary"` (the default), without
-`group_label`:
+All survival output requests omit `group_label`. The legacy `primary` dataset
+(the default) provides death-only CSVs and plots; complete endpoints, numerical
+curves, and statistical tests use the additional datasets documented below:
 
 | Output | Format | Contents |
 | --- | --- | --- |
@@ -132,6 +135,64 @@ Canonical results are stored under `ETHOSCOPY_ARTIFACT_ROOT/<analysis_id>/`.
 Repeated runs verify and reuse the same export folder. Changed existing exports
 are never overwritten. The first source folder must be writable; for multi-file
 analyses spanning directories, exports go beside the first source only.
+
+## Kaplan–Meier survival analysis
+
+Use `preview_analysis` with an `analysis_type: "survival"` recipe, then pass
+that unchanged recipe and its preview hash to `run_kaplan_meier`. This uses the
+same validated execution path as `run_analysis`, including source immutability,
+identity mapping, baseline alignment, censoring, and artifact verification.
+
+To export complete endpoints, numerical curves, and a plot, include:
+
+```json
+"output_requests": [
+  {"artifact_type": "table", "format": "csv", "name": "survival_individuals", "dataset": "individuals"},
+  {"artifact_type": "table", "format": "csv", "name": "kaplan_meier", "dataset": "kaplan_meier"},
+  {"artifact_type": "plot", "format": "png", "name": "survival"}
+]
+```
+
+The `individuals` CSV includes every analyzed animal: `id`, `treatment`, `T`
+(elapsed hours), and `E` (1 = detected death, 0 = censored), plus available cohort
+metadata. The `kaplan_meier` CSV contains each group's observed times,
+`n_at_risk`, `n_events`, `n_censored`, `survival`, `ci_lower`, and `ci_upper`.
+Confidence intervals use Ethoscopy's 95% log-transformed Greenwood method.
+CSV times are hours from each subject's first retained sample; plots use days.
+Explicit reviewed endpoints, when supplied, also drive these CSVs.
+Existing `primary` CSV requests remain death-only for compatibility.
+No 75% coverage variant is added.
+
+## Log-rank comparisons with Holm correction
+
+Survival recipes can request named, two-sided log-rank comparisons. Use display
+labels from `group.levels`, optional exact-match metadata filters, and optional
+stratum columns. All comparisons in one recipe form a single Holm family at
+alpha 0.05. Add both `logrank_comparisons` and a CSV request with
+`dataset: "statistics"` before previewing the recipe:
+
+```json
+"logrank_comparisons": [
+  {
+    "name": "Treatment effect adjusted for temperature",
+    "group_labels": ["Control", "Treatment"],
+    "filters": {"sex": "male"},
+    "strata_columns": ["temperature"]
+  }
+]
+```
+
+The statistics CSV includes sample sizes, event/censor counts, chi-square,
+raw and Holm-adjusted p-values, and significance at 0.05. Stratified tests sum
+observed-minus-expected deaths and their tied-event hypergeometric variances
+across strata before computing the chi-square statistic (1 df). Every stratum
+must contain both groups. Zero-variance comparisons are marked unestimable;
+they remain in the planned correction family but have missing reported p-values.
+Reviewed endpoints also drive these tests when provided.
+
+These are animal-level asymptotic tests, assuming independent observations and
+non-informative censoring. Sparse events, crossing curves, and machine/treatment
+confounding limit interpretation. Non-significance does not establish equivalence.
 
 ## Reproducible example
 
