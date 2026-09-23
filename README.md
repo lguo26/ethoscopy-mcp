@@ -60,13 +60,18 @@ confounding or validate statistical assumptions.
 ## Status
 
 Version `0.1.0a1` is a pre-alpha public preview. The local stdio MCP server
-supports survival analysis, reviewed-endpoint sleep summaries, and notebook-style
-sleep plots and comparisons. Recipes are previewed before execution, inputs stay
-immutable, and saved results include verified artifacts and provenance.
+supports survival analysis with complete event/censor tables, Kaplan–Meier
+curves, and optional stratified log-rank tests with Holm correction. Sleep
+workflows include reviewed-endpoint summaries, notebook-style plots, rebound
+comparisons, and optional Mann–Whitney tests.
+
+Recipes are previewed before execution, inputs stay immutable, and saved
+results include verified artifacts and provenance. Survival endpoint review
+supports explicit corrections while preserving the original estimates.
 
 Sleep-deprivation QC uses the ethoscope's `stimulus_range` metadata, with explicit
-time alignment and a per-fly exclusion audit. There is no fixed deprivation
-window. Activity analysis and additional scientific workflows remain on the
+time alignment and a per-fly exclusion audit. Activity analysis and additional
+scientific workflows remain on the
 [roadmap](docs/ROADMAP.md).
 
 Public-alpha preparation and verification evidence are tracked in the
