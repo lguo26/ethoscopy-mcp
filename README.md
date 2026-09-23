@@ -14,18 +14,6 @@ data. An analysis **recipe** records the settings and outputs you request.
 
 [Supported Analyses](#supported-analyses) · [Reproducibility](#reproducibility) · [Quick Start](#quick-start) · [Available Tools](#available-tools) · [Example Usage](#example-usage)
 
-## Features
-
-- **Reproducibility:** saved settings, unchanged source files, and a record of
-  how each result was produced.
-- **Sleep analysis:** heatmaps, sleep time courses, and per-fly summaries.
-- **Sleep-deprivation quality checks:** use recorded deprivation times and
-  report which flies were excluded and why.
-- **Survival analysis:** Kaplan–Meier curves, death and censoring tables, and
-  log-rank comparisons with Holm correction for multiple tests.
-- **Group comparisons:** sleep and rebound quantification, with optional
-  Mann–Whitney tests.
-
 ## Supported Analyses
 
 | Analysis | Recipe | What you can generate |
@@ -46,42 +34,24 @@ The service saves the settings and file checks needed to review or repeat it.
   and settings still match the approved preview. Source files stay unchanged.
 - **Analysis record:** `provenance.json` records the recipe, file fingerprints,
   software versions, and warnings. This record is called provenance.
-- **Saved results:** identical runs reuse existing results after checking that
-  the files are unchanged. Plots, tables, and the analysis record are also
-  copied beside your input file.
+- **Reviewed corrections:** supplied death or censoring times are recorded
+  separately, preserving the original estimates.
 
 Keep the inputs, identity mappings, recipe, and software environment to repeat
 an analysis. The record lists software versions but does not save a complete
-copy of the environment. Survival recipes record comparisons, filters, and
-strata (groups such as temperature that a statistical test accounts for).
-Log-rank results include Holm-adjusted p-values.
+copy of the environment.
 
 Newly generated sleep plots may differ slightly because confidence intervals
 can use random resampling and plotted points may be randomly offset for
-readability. Previously saved results are checked for changes before reuse.
-Reproducing a result does not rule out confounding or show that the statistical
+readability. Reproducing a result does not rule out confounding or show that the statistical
 assumptions are appropriate.
 
 ## Status
 
-Version `0.1.0a1` is an early development release. The MCP server
-supports survival analysis with complete event/censor tables, Kaplan–Meier
-curves, and optional stratified log-rank tests with Holm correction. Sleep
-workflows include reviewed-endpoint summaries, notebook-style plots, rebound
-comparisons, and optional Mann–Whitney tests.
-
-You can review the settings before running an analysis. Source files stay
-unchanged, and results include a record of how they were produced. You can
-supply reviewed death or censoring times; the original estimates are kept.
-
-Sleep-deprivation quality checks use the deprivation schedule you set on the
-Ethoscope when starting a recording, saved in its recording metadata. They
-report which flies were excluded and why. Activity analysis and other
-planned features are on the [roadmap](docs/ROADMAP.md).
-
-Release checks are tracked in the [release checklist](docs/RELEASE_CHECKLIST.md).
-This release is intended for researchers trying the documented analyses with
-local data from a trusted source.
+Version `0.1.0a1` is an early development release for researchers trying the
+documented analyses with local data from a trusted source. See the
+[release checklist](docs/RELEASE_CHECKLIST.md) for release checks and the
+[roadmap](docs/ROADMAP.md) for planned features, including activity analysis.
 
 ## Prerequisites
 
@@ -92,17 +62,13 @@ local data from a trusted source.
   Desktop, or Python to run analyses directly.
 - **Trusted local Ethoscopy pickle files** with the behavioural columns and
   metadata required by your analysis. Sleep workflows require saved sleep
-  annotations. Deprivation checks also need the recording metadata containing
-  the deprivation schedule, either saved with the data or supplied as a metadata CSV.
-- **Configured local directories:** set `ETHOSCOPY_DATA_ROOTS` to your experiment
-  directories and `ETHOSCOPY_ARTIFACT_ROOT` to an existing, writable output
-  directory.
+  annotations. Deprivation checks use the schedule you set on the Ethoscope
+  when starting a recording. This must be saved in the recording metadata or
+  supplied as a metadata CSV.
 
 Some workflows also require metadata CSV files for animal identity mapping or
 reviewed death or censoring times. Censoring means an animal was observed up to
-a known time without a detected death. See the [quick start](docs/QUICKSTART.md)
-for installation and [client configuration](docs/CLIENT_CONFIGURATION.md) for
-connecting a client.
+a known time without a detected death.
 
 ## Quick Start
 
@@ -138,12 +104,8 @@ export ETHOSCOPY_DATA_ROOTS="/absolute/path/to/experiments"
 export ETHOSCOPY_ARTIFACT_ROOT="/absolute/path/to/analysis-output"
 ```
 
-Your experiment directory should contain trusted Ethoscopy `.pkl` files and any
-required metadata CSVs. Configure your MCP client to launch
-`/absolute/path/to/ethoscopy-mcp/.venv/bin/ethoscopy-mcp`, with the two environment
-variables above included in its server configuration. See
-[client configuration](docs/CLIENT_CONFIGURATION.md) for the configuration
-example. The client starts the stdio server when it connects.
+Next, connect your AI client using one of the configurations below. Use the
+same experiment and output paths. The client starts the server automatically.
 
 ## Add to Codex
 
@@ -217,11 +179,8 @@ running. You can also specify settings or ask it to use those in your notebook.
 | `get_analysis` | Get a completed run's summary and paths to result files. |
 | `get_artifact` | Check a result file and return its details and local path. |
 
-All six tools are available through MCP. Python users can call the underlying
-analysis service directly. Runs check the inputs, work on copies, and save
-results with an analysis record. The hash returned by `preview_analysis`
-identifies the exact recipe passed to a run tool; your AI client handles this
-value when calling the tools.
+Your AI client passes the preview hash to the run tool. Python users can call
+the same analysis service directly; see the [Python example](docs/QUICKSTART.md).
 
 ### Where results are saved
 
@@ -236,16 +195,6 @@ export files cause an error instead of being silently replaced. If copying
 fails, the original results remain in `ETHOSCOPY_ARTIFACT_ROOT` for retrieval.
 Restart the MCP server after updating the package to load the new version.
 
-## Principles
-
-- Ethoscopy remains the scientific engine.
-- Original metadata, pickle files, databases, and recordings stay unchanged.
-- Added information and corrections are recorded separately.
-- MCP and Python use the same analysis code.
-- Important assumptions are previewed before execution.
-- Results include settings, file checks, warnings, units, and exclusions.
-- Raw behavioural rows are not returned to the model by default.
-
 ## Repository layout
 
 ```text
@@ -255,10 +204,8 @@ tests/              unit, contract, and scientific regression tests
 examples/           synthetic or redistributable examples only
 ```
 
-See [the roadmap](docs/ROADMAP.md), [tool design](docs/TOOLS.md), and
-[data-safety rules](docs/DATA_SAFETY.md). A preliminary Python API example is
-available in the [quick start](docs/QUICKSTART.md), with MCP client setup in
-[client configuration](docs/CLIENT_CONFIGURATION.md).
+See [tool design](docs/TOOLS.md) and [data-safety rules](docs/DATA_SAFETY.md)
+for implementation details.
 
 ## Relationship to Ethoscopes and Ethoscopy
 
