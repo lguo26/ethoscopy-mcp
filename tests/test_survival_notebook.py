@@ -9,7 +9,7 @@ from ethoscopy_mcp import EthoscopyService, ExperimentManifest, Settings
 from ethoscopy_mcp.errors import InvalidExperimentError
 from ethoscopy_mcp.execution import _run_recipe
 from ethoscopy_mcp.preview import _recipe_hash
-from ethoscopy_mcp.schemas import DeathDetectionSettings
+from ethoscopy_mcp.schemas import DeathDetectionSettings, OutputRequest
 from test_preview import _write_transfer_fixture, _survival_recipe
 
 
@@ -38,6 +38,9 @@ class NotebookSurvivalTests(unittest.TestCase):
             recipe = _survival_recipe(mapping)
             recipe = recipe.model_copy(update={"identity_overlay": recipe.identity_overlay.model_copy(
                 update={"expected_dates": ("2026-08-21",)}
+            ), "output_requests": (
+                OutputRequest(artifact_type="table", format="csv", name="endpoints", dataset="individuals"),
+                OutputRequest(artifact_type="table", format="csv", name="km", dataset="kaplan_meier"),
             )})
             manifest = ExperimentManifest(experiment_id=recipe.experiment_id, source_paths=(first,))
             preview = EthoscopyService(Settings.create([root])).preview_analysis(manifest, recipe)
@@ -65,6 +68,20 @@ class NotebookSurvivalTests(unittest.TestCase):
                 self.assertEqual(seen, [["t", "moving", "walk"]])
                 self.assertEqual(len(expected), 2)
                 pd.testing.assert_frame_equal(actual, expected)
+                endpoints = actual.attrs["survival_datasets"]["individuals"]
+                self.assertEqual(len(endpoints), 4)
+                self.assertEqual(int(endpoints.E.sum()), 2)
+                direct = reference.survival_table(
+                    mov_column="moving", second_mov_column="walk", time_window=24,
+                    prop_immobile=0.01, zero_run_hours=12,
+                    subject_cols=["machine_name", "region_id"],
+                ).reset_index(drop=True)
+                pd.testing.assert_frame_equal(endpoints[["id", "T", "E"]], direct[["id", "T", "E"]])
+                curves = actual.attrs["survival_datasets"]["kaplan_meier"]
+                self.assertEqual(int(curves.n_events.sum()), 2)
+                self.assertEqual(int(curves.n_censored.sum()), 2)
+                self.assertEqual(curves.loc[curves.treatment == "PBS", "survival"].iloc[-1], 1)
+                self.assertEqual(curves.loc[curves.treatment == "S. aureus", "survival"].iloc[-1], 0)
                 self.assertEqual(sha256_file(first), before)
             finally:
                 plt.close(figure)

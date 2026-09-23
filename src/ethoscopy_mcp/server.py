@@ -13,6 +13,7 @@ from ethoscopy_mcp.schemas import (
     ExperimentManifest,
     ExperimentSummary,
     AnalysisRecipe,
+    SurvivalRecipe,
 )
 from ethoscopy_mcp.service import EthoscopyService
 
@@ -79,6 +80,23 @@ def create_server(
     ) -> AnalysisRunResult:
         """Run a freshly revalidated recipe only when its hash exactly matches."""
 
+        return get_service().run_analysis(manifest, recipe, approved_recipe_hash)
+
+    @server.tool(annotations=LOCAL_WRITE, structured_output=True)
+    def run_kaplan_meier(
+        manifest: ExperimentManifest,
+        recipe: SurvivalRecipe,
+        approved_recipe_hash: str,
+    ) -> AnalysisRunResult:
+        """Run Kaplan–Meier survival analysis using an exactly previewed survival recipe.
+
+        Preview with preview_analysis first. Request CSV datasets individuals for
+        all event/censor endpoints and kaplan_meier for curves, confidence
+        intervals and risk counts; request primary PNG/SVG for survival plots.
+        Configure logrank_comparisons and a statistics CSV for two-sided
+        log-rank tests with optional strata and Holm correction.
+        Times in CSV outputs are hours from each subject's first retained sample.
+        """
         return get_service().run_analysis(manifest, recipe, approved_recipe_hash)
 
     @server.tool(annotations=READ_ONLY, structured_output=True)

@@ -219,6 +219,7 @@ sleep data. See [client configuration](docs/CLIENT_CONFIGURATION.md) for setup.
 | `inspect_experiment` | Summarize input files, behavioural columns, and metadata. |
 | `preview_analysis` | Validate a recipe and review cohorts, assumptions, and warnings. |
 | `run_analysis` | Execute the recipe using its approved preview hash. |
+| `run_kaplan_meier` | Run Kaplan–Meier analysis with a survival recipe and its approved preview hash. |
 | `get_analysis` | Retrieve a completed run's summary and artifact references. |
 | `get_artifact` | Retrieve a verified artifact's metadata and local path. |
 
@@ -285,3 +286,61 @@ AI-assistance attribution. Contributions are welcome under the process in
 `GPL-3.0-only`. Third-party packages remain under their own licenses. Private
 research datasets and generated experiment artifacts are not distributed by
 this repository and are not licensed by this software license.
+
+### Kaplan–Meier survival analysis
+
+Use `preview_analysis` with an `analysis_type: "survival"` recipe, then pass
+that unchanged recipe and its preview hash to `run_kaplan_meier`. This uses the
+same validated execution path as `run_analysis`, including source immutability,
+identity mapping, baseline alignment, censoring, and artifact verification.
+
+To export complete endpoints, numerical curves, and a plot, include:
+
+```json
+"output_requests": [
+  {"artifact_type": "table", "format": "csv", "name": "survival_individuals", "dataset": "individuals"},
+  {"artifact_type": "table", "format": "csv", "name": "kaplan_meier", "dataset": "kaplan_meier"},
+  {"artifact_type": "plot", "format": "png", "name": "survival"}
+]
+```
+
+The `individuals` CSV includes every analyzed animal: `id`, `treatment`, `T`
+(elapsed hours), and `E` (1 = detected death, 0 = censored), plus available cohort
+metadata. The `kaplan_meier` CSV contains each group's observed times,
+`n_at_risk`, `n_events`, `n_censored`, `survival`, `ci_lower`, and `ci_upper`.
+Confidence intervals use Ethoscopy's 95% log-transformed Greenwood method.
+CSV times are hours from each subject's first retained sample; plots use days.
+Explicit reviewed endpoints, when supplied, also drive these CSVs.
+Existing `primary` CSV requests remain death-only for compatibility.
+No 75% coverage variant is added.
+
+### Log-rank comparisons with Holm correction
+
+Survival recipes can request named, two-sided log-rank comparisons. Use display
+labels from `group.levels`, optional exact-match metadata filters, and optional
+stratum columns. All comparisons in one recipe form a single Holm family at
+alpha 0.05. Add both `logrank_comparisons` and a CSV request with
+`dataset: "statistics"` before previewing the recipe:
+
+```json
+"logrank_comparisons": [
+  {
+    "name": "Treatment effect adjusted for temperature",
+    "group_labels": ["Control", "Treatment"],
+    "filters": {"sex": "male"},
+    "strata_columns": ["temperature"]
+  }
+]
+```
+
+The statistics CSV includes sample sizes, event/censor counts, chi-square,
+raw and Holm-adjusted p-values, and significance at 0.05. Stratified tests sum
+observed-minus-expected deaths and their tied-event hypergeometric variances
+across strata before computing the chi-square statistic (1 df). Every stratum
+must contain both groups. Zero-variance comparisons are marked unestimable;
+they remain in the planned correction family but have missing reported p-values.
+Reviewed endpoints also drive these tests when provided.
+
+These are animal-level asymptotic tests, assuming independent observations and
+non-informative censoring. Sparse events, crossing curves, and machine/treatment
+confounding limit interpretation. Non-significance does not establish equivalence.

@@ -149,8 +149,15 @@ class OutputRequest(StrictModel):
     artifact_type: Literal["table", "plot"]
     format: Literal["csv", "png", "svg", "pdf", "json"]
     name: str = Field(min_length=1)
-    dataset: Literal["primary", "timecourse", "individuals", "comparison", "heatmap", "statistics", "exclusions"] = "primary"
+    dataset: Literal["primary", "timecourse", "individuals", "kaplan_meier", "comparison", "heatmap", "statistics", "exclusions"] = "primary"
     group_label: str | None = None
+
+
+class LogRankComparison(StrictModel):
+    name: str = Field(min_length=1)
+    group_labels: tuple[str, str]
+    filters: dict[str, ScalarValue] = Field(default_factory=dict)
+    strata_columns: tuple[str, ...] = ()
 
 
 class SurvivalRecipe(StrictModel):
@@ -158,6 +165,7 @@ class SurvivalRecipe(StrictModel):
     recipe_id: str = Field(min_length=1, pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
     experiment_id: str = Field(min_length=1)
     analysis_type: Literal["survival"] = "survival"
+    logrank_comparisons: tuple[LogRankComparison, ...] = ()
     cohort_filters: dict[str, ScalarValue]
     group: GroupDefinition
     identity_overlay: IdentityOverlay
@@ -176,9 +184,21 @@ class SurvivalRecipe(StrictModel):
 
     @model_validator(mode="after")
     def validate_survival_outputs(self) -> "SurvivalRecipe":
+        labels = {level.label for level in self.group.levels}
+        names = [c.name for c in self.logrank_comparisons]
+        if len(names) != len(set(names)):
+            raise ValueError("Log-rank comparison names must be unique")
+        for comparison in self.logrank_comparisons:
+            if len(set(comparison.group_labels)) != 2 or not set(comparison.group_labels) <= labels:
+                raise ValueError("Log-rank comparisons require two distinct configured group labels")
+        statistics_requested = any(r.dataset == "statistics" for r in self.output_requests)
+        if bool(self.logrank_comparisons) != statistics_requested:
+            raise ValueError("Log-rank comparisons and a statistics CSV must be requested together")
         for request in self.output_requests:
-            if request.dataset != "primary" or request.group_label is not None:
-                raise ValueError("Survival outputs use dataset=primary without group_label")
+            if request.dataset not in {"primary", "individuals", "kaplan_meier", "statistics"} or request.group_label is not None:
+                raise ValueError("Unsupported survival dataset or group_label")
+            if request.dataset != "primary" and (request.artifact_type, request.format) != ("table", "csv"):
+                raise ValueError("Survival individuals and kaplan_meier datasets require CSV tables")
             if (request.artifact_type, request.format) not in {("table", "csv"), ("plot", "png"), ("plot", "svg")}:
                 raise ValueError("Survival supports CSV tables and PNG/SVG plots")
         return self

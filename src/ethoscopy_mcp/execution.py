@@ -312,6 +312,44 @@ def _run_recipe(
         table, figure, reports = review_survival(working, recipe, death_settings, table, figure)
         table.attrs["review_reports"] = reports
     _style_figure(figure)
+    if any(r.dataset in {"individuals", "kaplan_meier", "statistics"} for r in recipe.output_requests):
+        from ethoscopy.survival import kaplan_meier
+
+        if "review_reports" in table.attrs:
+            individuals = table.attrs["review_reports"]["survival_review.csv"].copy()
+        else:
+            individuals = working.survival_table(
+                **death_settings, subject_cols=subject_columns
+            ).reset_index(drop=True)
+            individuals["treatment"] = individuals["id"].map(working.meta["species"])
+        # Keep the same selected endpoints for both curves and endpoint exports,
+        # including any explicit reviewed overrides.
+        comparison_columns = [column for c in recipe.logrank_comparisons
+                              for column in (*c.filters, *c.strata_columns)]
+        for column in dict.fromkeys([recipe.group.column, *recipe.cohort_filters, *comparison_columns,
+                                      "temperature", "machine_name", "region_id"]):
+            if column in working.meta and column not in individuals:
+                individuals[column] = individuals["id"].map(working.meta[column])
+        individuals["time_unit"] = "hours"
+        individuals["time_basis"] = "elapsed_from_first_retained_sample"
+        curves = []
+        for label in labels:
+            group = individuals.loc[individuals.treatment == label]
+            if group.empty:
+                continue
+            curve = kaplan_meier(group["T"], group["E"]).copy()
+            curve.insert(0, "treatment", label)
+            curve["time_unit"] = "hours"
+            curves.append(curve)
+        table.attrs["survival_datasets"] = {
+            "individuals": individuals,
+            "kaplan_meier": pd.concat(curves, ignore_index=True),
+        }
+        if recipe.logrank_comparisons:
+            from ethoscopy_mcp.survival_statistics import compare_survival
+            table.attrs["survival_datasets"]["statistics"] = compare_survival(
+                individuals, recipe.logrank_comparisons
+            )
     return table, figure
 
 
@@ -334,7 +372,9 @@ def _write_requested_artifacts(
             seen.add(filename)
             temporary_path = temporary / filename
             if request.artifact_type == "table" and request.format == "csv":
-                table.to_csv(temporary_path, index=False)
+                output = (table if request.dataset == "primary"
+                          else table.attrs["survival_datasets"][request.dataset])
+                output.to_csv(temporary_path, index=False)
             elif request.artifact_type == "plot" and request.format in {"png", "svg"}:
                 save_kwargs: dict[str, Any] = {"facecolor": "white", "bbox_inches": None}
                 if request.format == "png":

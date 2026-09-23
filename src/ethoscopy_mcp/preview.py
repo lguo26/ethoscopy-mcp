@@ -156,6 +156,19 @@ def preview_survival(
     )
 
     from ethoscopy_mcp.survival_review import read_endpoints
+    if recipe.logrank_comparisons:
+        transformations += (TransformationPreview(
+            operation="logrank_comparisons",
+            description=("Two-sided log-rank tests; Holm correction across all requested "
+                         "comparisons at alpha=0.05: " + "; ".join(
+                             f"{c.name}: {c.group_labels}, filters={c.filters}, strata={c.strata_columns}"
+                             for c in recipe.logrank_comparisons)),
+        ),)
+        warnings.append(ValidationWarning(code="survival_statistics_assumptions", message=(
+            "Animal-level asymptotic tests assume independent observations and non-informative "
+            "censoring. Sparse events and crossing curves limit inference; shared machine effects "
+            "are not adjusted automatically. Non-significance does not establish equivalence."
+        )))
     auxiliary = []
     for path, reviewed in ((recipe.reviewed_endpoints_path, True), (recipe.reference_endpoints_path, False)):
         if path is not None:

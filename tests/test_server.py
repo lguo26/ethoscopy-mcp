@@ -38,12 +38,14 @@ class MCPServerTests(unittest.IsolatedAsyncioTestCase):
                     "inspect_experiment",
                     "preview_analysis",
                     "run_analysis",
+                    "run_kaplan_meier",
                     "get_analysis",
                     "get_artifact",
                 },
             )
             self.assertTrue(tools["inspect_experiment"].annotations.read_only_hint)
             self.assertFalse(tools["run_analysis"].annotations.read_only_hint)
+            self.assertFalse(tools["run_kaplan_meier"].annotations.read_only_hint)
             self.assertIn("$defs", tools["preview_analysis"].input_schema)
             self.assertIsNotNone(tools["get_analysis"].output_schema)
 
