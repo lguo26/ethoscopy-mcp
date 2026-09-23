@@ -93,8 +93,8 @@ for researchers evaluating the documented workflows with trusted local data.
   directories and `ETHOSCOPY_ARTIFACT_ROOT` to an existing, writable output
   directory.
 
-Some workflows also require CSV overlays for animal identity or reviewed
-death/censor endpoints. See the [quick start](docs/QUICKSTART.md) for installation
+Some workflows also require metadata CSV files for animal identity mapping or
+reviewed death/censor endpoints. See the [quick start](docs/QUICKSTART.md) for installation
 and [client configuration](docs/CLIENT_CONFIGURATION.md) for connecting a client.
 
 ## Quick Start
