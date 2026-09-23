@@ -26,10 +26,27 @@ recipe together with all source and overlay hashes for approval.
 Execute only a freshly revalidated recipe whose hash exactly matches the
 approved preview. Survival and interval sleep recipes write CSV/PNG/SVG outputs;
 notebook sleep additionally supports PDF plots. Artifacts and provenance are written atomically to a
-content-addressed run directory, then verifies that sources and overlays are
-unchanged. Sleep recipes support reviewed endpoint truncation, time courses,
+run directory identified by the recipe hash. The service checks that sources
+and identity mappings are unchanged. Sleep recipes support reviewed endpoint truncation, time courses,
 per-fly summaries and descriptive group comparisons. See
 [Sleep analysis](SLEEP_ANALYSIS.md). Activity recipes remain planned.
+
+### `run_kaplan_meier(manifest, recipe, approved_recipe_hash)`
+
+Run a survival recipe using the same checks as `run_analysis`. Preview the
+recipe first, then pass its unchanged settings and approval hash.
+
+Choose CSV outputs by dataset:
+
+- `individuals`: every animal's death or censoring time and event indicator.
+- `kaplan_meier`: survival estimates, confidence intervals, and numbers at risk.
+- `statistics`: requested log-rank comparisons with Holm-adjusted p-values.
+- `primary`: the original death-only table, kept for compatibility.
+
+Plots use `primary` with PNG or SVG format. Statistical tests require named
+`logrank_comparisons`; each can specify metadata filters and strata such as
+temperature. All requested comparisons form one Holm correction family.
+See [Survival analysis](SURVIVAL_ANALYSIS.md) for settings and examples.
 
 ## Retrieval
 
@@ -42,9 +59,9 @@ Return structured results, warnings, provenance, and artifact references.
 Resolve a generated table, PNG, SVG, or other output without embedding large
 files directly in ordinary tool text.
 
-These five tools are implemented over local stdio. Inspection, preview, and
-retrieval are annotated read-only. Execution is a non-destructive, idempotent
-local write because it creates or reuses only content-addressed artifacts.
+These six tools run through the local MCP server. Inspection, preview, and
+retrieval are marked read-only. The two run tools create new result files or
+reuse matching results; they do not modify source data.
 
 ## Approval flow
 

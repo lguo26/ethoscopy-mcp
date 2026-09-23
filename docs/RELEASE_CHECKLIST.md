@@ -16,7 +16,7 @@ checks from GitHub settings and publication steps.
 - [x] Review reachable Git history for research-data files, private paths and
   common credential patterns.
 
-Evidence recorded on 22 September 2026:
+Initial checks recorded on 22 September 2026:
 
 - A fresh Python 3.14.7 environment installed the package from the repository,
   including Ethoscopy 2.4.0 and MCP 2.2.0; `pip check` found no broken requirements.
@@ -37,6 +37,21 @@ Evidence recorded on 22 September 2026:
   file contents and names. Private acceptance results were removed from the
   current roadmap; earlier commits may still contain descriptive research text.
 
+Updated checks recorded on 23 September 2026:
+
+- All 54 tests passed locally under Python 3.14 after adding complete survival
+  tables, the `run_kaplan_meier` tool, and log-rank tests with Holm correction
+  (code committed as `c470a84`). This includes MCP tool tests and comparison
+  of log-rank calculations against SciPy. The MCP tests ran outside the
+  restricted agent sandbox.
+- A pattern-based scan at `83dd3dd` checked 34 reachable commits and 164 file
+  versions. It found no matching private-path or credential patterns, or
+  research pickle, database, notebook, or CSV file paths. This does not replace
+  a manual review for sensitive research text.
+- Later README edits changed documentation only. These local checks do not
+  establish that the final release commit passes GitHub CI on every supported
+  Python version.
+
 ## GitHub release gates
 
 - [ ] Confirm the exact release commit passes all hosted Python 3.12, 3.13 and
@@ -48,8 +63,9 @@ Evidence recorded on 22 September 2026:
   and known limitations.
 
 Repository settings and hosted CI status were not verified during the local
-review: the unauthenticated GitHub API request returned HTTP 403. Checklist
-entries remain open until their actual state is confirmed.
+reviews. Earlier GitHub API access returned HTTP 403; the later status query
+did not provide hosted test results. Checklist entries remain open until their
+actual state is confirmed.
 
 ## Repeatable verification commands
 
@@ -69,8 +85,11 @@ are accessible, including the export folder beside the first source pickle.
 
 ## Initial release notes
 
-- Survival analysis with movement-based death detection, death-table CSVs,
-  Kaplan–Meier curves and group death/censor counts.
+- Survival analysis with movement-based death detection, complete per-animal
+  death/censor CSVs, Kaplan–Meier plots and curve tables with confidence
+  intervals and numbers at risk.
+- Optional log-rank comparisons with metadata filters, strata such as
+  temperature, and Holm correction for multiple tests.
 - Sleep summaries using reviewed endpoints, plus notebook-style sleep plots,
   deprivation quality checks and optional two-group comparisons.
 - Explicit recipes, hashed inputs, immutable sources, recorded provenance and
@@ -78,8 +97,10 @@ are accessible, including the export folder beside the first source pickle.
 - Automatic exports into a run-specific folder beside the first source pickle.
 
 Limitations: trusted pickles only; local filesystem access; writable source
-folder required for exports; Ethoscopy 2.4.0 required. Survival CSVs contain
-detected deaths only. Experimental confounding still requires review. Fresh
-sleep plots can vary in bootstrap confidence intervals and point jitter.
+folder required for exports; Ethoscopy 2.4.0 required. The legacy `primary`
+survival CSV contains deaths only; choose `individuals` to include censored
+animals. Log-rank tests rely on statistical assumptions, and experimental
+confounding still requires review. Fresh sleep plots can vary slightly because
+of random resampling and point placement.
 The service does not package a complete software environment or generate
 narrative reports. See the workflow guides for scientific assumptions.

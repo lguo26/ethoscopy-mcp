@@ -59,8 +59,10 @@ Multiple data roots use `:` on Linux/macOS and `;` on Windows.
 
 Follow [Add to Codex](CLIENT_CONFIGURATION.md#add-to-codex) or
 [Add to Claude Desktop](CLIENT_CONFIGURATION.md#add-to-claude-desktop).
-The client launches the installed `ethoscopy-mcp` executable and exposes five
-tools: inspect, preview, run, retrieve analysis, and retrieve artifact.
+The client starts the installed `ethoscopy-mcp` program and provides six tools:
+`inspect_experiment`, `preview_analysis`, `run_analysis`, `run_kaplan_meier`,
+`get_analysis`, and `get_artifact`. You can ask for analyses in plain language;
+the client handles the tool calls.
 
 ## 5. Inspect, preview, and run
 
@@ -73,7 +75,7 @@ Then choose an analysis:
 
 | Recipe | Use it for | Additional inputs or decisions |
 | --- | --- | --- |
-| `survival` | Death detection, survival tables, Kaplan–Meier plots | Movement columns, death-detection settings, identity and time alignment. |
+| `survival` | Death and censoring tables, Kaplan–Meier plots, optional log-rank tests with Holm correction | Movement columns, death-detection settings, identity and time alignment; named comparisons and any filters or strata for statistical tests. |
 | `sleep` | Interval-based sleep profiles and per-fly summaries | Reviewed death/censor endpoint CSV and sampling interval. |
 | `sleep_notebook` | Heatmaps, time courses, rebound plots, optional Mann–Whitney tests | Endpoint policy, profile and quantification windows; deprivation metadata if QC is requested. |
 
