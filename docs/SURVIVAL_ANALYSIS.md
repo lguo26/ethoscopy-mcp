@@ -2,8 +2,10 @@
 
 Use `analysis_type: "survival"` with the same `preview_analysis` and
 `run_analysis` tools as sleep. Python callers use `SurvivalRecipe` and
-`EthoscopyService`. Both interfaces call Ethoscopy 2.4.0's public
-`km_death_table` and `km_survival_plot` functions through the shared service.
+`EthoscopyService`. Default runs call Ethoscopy 2.4.0's public `km_death_table` and
+`km_survival_plot` functions through the shared service. Reviewed runs use the
+same default estimates, then plot explicitly reviewed endpoints using Ethoscopy's
+Kaplan–Meier helper.
 
 ## Inputs and identity
 
@@ -92,9 +94,8 @@ Controls are not synthesized for conditions with no recorded control animals.
 Record known design limitations in `context_warnings` for preview and provenance.
 
 The current workflow reports descriptive survival curves and event counts. It
-does not run log-rank tests, Cox models, multiple-comparison corrections, or
-manual endpoint overrides. Reviewed endpoints can instead be supplied to the
-separate [sleep summary workflow](SLEEP_ANALYSIS.md).
+does not run log-rank tests, Cox models, or multiple-comparison corrections.
+Optional endpoint review is described below.
 
 ## Outputs and reporting
 
@@ -165,3 +166,42 @@ so older cached results cannot substitute for a new 2.4 analysis. Previously
 saved results remain available for retrieval. The detection defaults and
 elapsed-time interpretation are documented above under Recipe settings and
 Time and censoring.
+
+## Per-fly review and reference comparison
+
+Set `review_diagnostics: true` to export `survival_review.csv` and
+`survival_candidates.csv`. These report original event/censor endpoints,
+post-restart movement counts, triggering column and method, candidate times,
+window sample count/span and recording segment. Candidate evidence contains the
+first window and zero-run candidate for each movement column in each segment,
+not every possible window. Movement after restart is a review flag, not proof
+of survival: tracking noise and the difference between walking and moving matter.
+No automatic latest-candidate selection or 75% coverage override is applied.
+
+To apply reviewed decisions, add `reviewed_endpoints_path` to the recipe.
+To compare against a saved script table without changing results, add
+`reference_endpoints_path`. Either field also enables diagnostic exports.
+Both files use CSV columns:
+
+```csv
+canonical_machine,roi,time_hours,event,time_basis,reason
+ETHOSCOPE_example,1,48,0,elapsed,Escaped at the reviewed observation time
+```
+
+`event` is 1 for death or 0 for censoring. `time_basis` must be `elapsed`
+(hours from the subject's first retained sample) or `aligned` (hours in source
+`t` after baseline and recipe subtraction). Explicitly convert script columns
+to this format; the service does not infer units or identity from filenames.
+A nonempty `reason` is required for each reviewed decision; reference rows do
+not require it. Keys must match selected canonical machine/ROI identities and
+be unique. Partial review/reference tables are supported; unlisted flies keep
+the original estimates. Reviewed times outside retained observations fail.
+
+Both the death export and plot use the selected endpoints, including censoring.
+The review export preserves `original_T`, `original_E`, selected `T`, `E`, reason,
+and reference differences where provided. Differences must be interpreted with
+the event indicators: a censored time is not a detected death time. Existing
+`detected_deaths` summary counts describe selected death events in reviewed runs.
+The auxiliary files are trusted-root validated, hashed into the approval and
+recorded in provenance. Changing any review reason or reference invalidates
+approval. Restart/reconnect the MCP process after updating to load these fields.

@@ -14,6 +14,61 @@ from test_preview import _write_transfer_fixture, _survival_recipe
 
 
 class NotebookSurvivalTests(unittest.TestCase):
+    def test_survival_projects_columns_before_concat_without_changing_deaths(self):
+        import ethoscopy as etho
+        import pandas as pd
+        import matplotlib.pyplot as plt
+        from ethoscopy_mcp.registry import sha256_file
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            first, _, mapping = _write_transfer_fixture(root)
+            meta = pd.read_pickle(first).meta.copy()
+            rows = [
+                {"id": animal_id, "t": t, "moving": not (row.infection and t >= 12 * 3600),
+                 "walk": not (row.infection and t >= 12 * 3600), "x": 0.5, "asleep": False}
+                for animal_id, row in meta.iterrows()
+                for t in range(0, 48 * 3600, 600)
+            ]
+            data = etho.behavpy(pd.DataFrame(rows).set_index("id"), meta, check=True)
+            data.to_pickle(first)
+            before = sha256_file(first)
+            overlay = pd.read_csv(mapping)
+            overlay.loc[overlay.date == "2026-08-21"].to_csv(mapping, index=False)
+            recipe = _survival_recipe(mapping)
+            recipe = recipe.model_copy(update={"identity_overlay": recipe.identity_overlay.model_copy(
+                update={"expected_dates": ("2026-08-21",)}
+            )})
+            manifest = ExperimentManifest(experiment_id=recipe.experiment_id, source_paths=(first,))
+            preview = EthoscopyService(Settings.create([root])).preview_analysis(manifest, recipe)
+
+            reference = data.baseline(column="baseline")
+            reference["t"] -= 2 * 3600
+            reference = reference.loc[reference.t >= 0].copy()
+            reference.meta["species"] = reference.meta.infection.map({False: "PBS", True: "S. aureus"})
+            expected = reference.km_death_table(
+                mov_column="moving", second_mov_column="walk", time_window=24,
+                prop_immobile=0.01, zero_run_hours=12,
+                subject_cols=["machine_name", "region_id"], meta_cols=["species"], time_unit="hours",
+            ).rename(columns={"species": "treatment"})
+            expected["sex"] = "male"
+            concat = etho.concat
+            seen = []
+
+            def checked_concat(*frames):
+                seen.extend([list(frame.columns) for frame in frames])
+                return concat(*frames)
+
+            with patch("ethoscopy_mcp.execution.etho.concat", side_effect=checked_concat):
+                actual, figure = _run_recipe(preview, recipe)
+            try:
+                self.assertEqual(seen, [["t", "moving", "walk"]])
+                self.assertEqual(len(expected), 2)
+                pd.testing.assert_frame_equal(actual, expected)
+                self.assertEqual(sha256_file(first), before)
+            finally:
+                plt.close(figure)
+
     def test_short_window_fails_during_preview(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

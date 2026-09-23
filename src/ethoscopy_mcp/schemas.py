@@ -163,6 +163,9 @@ class SurvivalRecipe(StrictModel):
     identity_overlay: IdentityOverlay
     baseline_alignment: BaselineAlignment
     time_alignment: TimeAlignment
+    review_diagnostics: bool = False
+    reviewed_endpoints_path: Path | None = None
+    reference_endpoints_path: Path | None = None
     death_detection: DeathDetectionSettings = Field(
         default_factory=DeathDetectionSettings
     )
@@ -411,5 +414,6 @@ class AnalysisRunResult(StrictModel):
     reused_existing: bool
     artifacts: tuple[ArtifactReference, ...]
     group_outcomes: tuple[GroupOutcome, ...]
+    review_summary: dict[str, int] = Field(default_factory=dict)
     provenance_path: Path
     source_hashes_verified: bool

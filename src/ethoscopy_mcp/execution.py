@@ -63,6 +63,7 @@ def execute_survival(
 
     temporary = Path(tempfile.mkdtemp(prefix=f".{analysis_id}-", dir=artifact_root))
     try:
+        review_summary = {}
         if isinstance(recipe, NotebookSleepRecipe):
             from ethoscopy_mcp.notebook_sleep import write_notebook_artifacts
             requested_artifacts = write_notebook_artifacts(preview, recipe, temporary, run_directory)
@@ -82,6 +83,22 @@ def execute_survival(
             requested_artifacts = _write_requested_artifacts(
                 table, figure, recipe, temporary, run_directory
             )
+            reports = table.attrs.get("review_reports", {})
+            if reports:
+                evidence = reports["survival_review.csv"]
+                review_summary = {
+                    "subjects": len(evidence),
+                    "reviewed_subjects": int(evidence.reviewed.sum()),
+                    "original_deaths_with_post_restart_movement": int(evidence.warning.ne("").sum()),
+                }
+            extra = []
+            for filename, report in reports.items():
+                if (temporary / filename).exists():
+                    raise InvalidExperimentError(f"Reserved review artifact filename: {filename}")
+                report.to_csv(temporary / filename, index=False)
+                extra.append(_artifact_reference(temporary / filename, run_directory / filename,
+                    artifact_type="table", format_name="csv", name=filename))
+            requested_artifacts = (*requested_artifacts, *extra)
             group_outcomes = _group_outcomes(preview, table)
         created_at = datetime.now(timezone.utc)
         provenance_path = run_directory / PROVENANCE_NAME
@@ -99,6 +116,7 @@ def execute_survival(
             "scipy_version": _package_version("scipy"),
             "warnings": [warning.model_dump(mode="json") for warning in preview.warnings],
             "group_outcomes": [outcome.model_dump(mode="json") for outcome in group_outcomes],
+            "review_summary": review_summary,
             "artifacts": [artifact.model_dump(mode="json") for artifact in requested_artifacts],
         }
         _write_json(temporary / PROVENANCE_NAME, provenance)
@@ -119,6 +137,7 @@ def execute_survival(
             reused_existing=False,
             artifacts=(*requested_artifacts, provenance_reference),
             group_outcomes=group_outcomes,
+            review_summary=review_summary,
             provenance_path=provenance_path,
             source_hashes_verified=True,
         )
@@ -182,12 +201,24 @@ def load_analysis_result(
 def _run_recipe(
     preview: AnalysisPreview, recipe: SurvivalRecipe
 ) -> tuple[pd.DataFrame, Any]:
-    frames = [load_behaviour_pickle(source) for source in preview.sources]
+    columns = ["t", recipe.death_detection.movement_column]
+    if recipe.death_detection.second_movement_column:
+        columns.append(recipe.death_detection.second_movement_column)
+    columns = list(dict.fromkeys(columns))
+    # Retain only survival inputs while loading each recording. Keeping all
+    # tracking columns through concat/baseline can exhaust memory on long runs.
+    frames = []
+    for source in preview.sources:
+        loaded = load_behaviour_pickle(source)
+        frames.append(loaded[columns].copy())
+        del loaded
     combined = etho.concat(*frames)
-    combined = combined.baseline(
+    del frames
+    working = combined.baseline(
         column=recipe.baseline_alignment.metadata_column,
         day_length=recipe.baseline_alignment.day_length_hours,
     )
+    del combined
 
     overlay = recipe.identity_overlay
     mapping = pd.read_csv(preview.identity_overlay.source.path, dtype={"roi": "string"})
@@ -196,15 +227,11 @@ def _run_recipe(
     mapping_by_source = mapping.set_index(overlay.source_id_column, drop=False)
     id_map = mapping_by_source[overlay.analysis_id_column].to_dict()
 
-    columns = ["t", recipe.death_detection.movement_column]
-    if recipe.death_detection.second_movement_column:
-        columns.append(recipe.death_detection.second_movement_column)
-    working = combined[list(dict.fromkeys(columns))].copy()
     working.index = pd.Index(working.index.astype(str).map(id_map), name="id")
     if working.index.isna().any():
         raise InvalidExperimentError("Identity overlay failed to map one or more data IDs")
 
-    metadata = combined.meta.copy(deep=True)
+    metadata = working.meta.copy(deep=True)
     if "id" in metadata.columns:
         metadata = metadata.set_index("id", drop=True)
     metadata.index = metadata.index.astype(str)
@@ -280,6 +307,10 @@ def _run_recipe(
         show_ci=True,
         **plot_api_settings,
     )
+    if recipe.review_diagnostics or recipe.reviewed_endpoints_path or recipe.reference_endpoints_path:
+        from ethoscopy_mcp.survival_review import review_survival
+        table, figure, reports = review_survival(working, recipe, death_settings, table, figure)
+        table.attrs["review_reports"] = reports
     _style_figure(figure)
     return table, figure
 

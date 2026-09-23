@@ -155,7 +155,22 @@ def preview_survival(
         ),
     )
 
-    recipe_hash = _recipe_hash(recipe, inspection, mapping_source.sha256)
+    from ethoscopy_mcp.survival_review import read_endpoints
+    auxiliary = []
+    for path, reviewed in ((recipe.reviewed_endpoints_path, True), (recipe.reference_endpoints_path, False)):
+        if path is not None:
+            source = registry.register_auxiliary(path)
+            read_endpoints(source.path, cohort_mapping, reviewed=reviewed)
+            auxiliary.append(source)
+            registry.assert_auxiliary_unchanged(source)
+    if recipe.review_diagnostics or auxiliary:
+        warnings.append(ValidationWarning(code="survival_review", message=(
+            "Export per-fly estimates, candidate evidence and post-restart movement flags; "
+            "flags do not automatically change death estimates. Reviewed endpoints, if supplied, "
+            "replace only explicitly listed subjects in both tables and plots."
+        )))
+    recipe_hash = _recipe_hash(recipe, inspection, mapping_source.sha256,
+                               tuple(source.sha256 for source in auxiliary))
     for source in inspection.sources:
         registry.assert_unchanged(source)
     registry.assert_auxiliary_unchanged(mapping_source)
@@ -169,6 +184,7 @@ def preview_survival(
             warning.severity == WarningSeverity.ERROR for warning in warnings
         ),
         sources=inspection.sources,
+        auxiliary_sources=tuple(auxiliary),
         identity_overlay=IdentityOverlayPreview(
             source=mapping_source,
             mapping_rows=len(mapping),
@@ -191,7 +207,9 @@ def preview_survival(
                 name=request.name,
             )
             for request in recipe.output_requests
-        ),
+        ) + (tuple(ArtifactPreview(artifact_type="table", format="csv", name=name)
+                   for name in ("survival_review.csv", "survival_candidates.csv"))
+             if recipe.review_diagnostics or auxiliary else ()),
         assumptions=recipe.assumptions,
         warnings=tuple(warnings),
     )
@@ -346,9 +364,11 @@ def _recipe_hash(
     recipe: SurvivalRecipe,
     inspection: ExperimentSummary,
     overlay_hash: str,
+    auxiliary_hashes: tuple[str, ...] = (),
 ) -> str:
     payload = {
-        "survival_engine": "notebook-2.4-v1",
+        "survival_engine": "notebook-2.4-review-v2",
+        "auxiliary_hashes": auxiliary_hashes,
         "ethoscopy_version": etho.__version__,
         "recipe": recipe.model_dump(mode="json"),
         "source_hashes": [source.sha256 for source in inspection.sources],
