@@ -31,7 +31,7 @@ data. An analysis **recipe** records the settings and outputs you request.
 | Analysis | Recipe | What you can generate |
 | --- | --- | --- |
 | [Sleep summaries](docs/SLEEP_ANALYSIS.md) | `sleep` | Sleep profiles, per-fly summaries, and group summaries using reviewed death or censoring times. |
-| [Sleep plots and deprivation analysis](docs/NOTEBOOK_SLEEP.md) | `sleep_notebook` | Heatmaps, sleep time courses, rebound comparisons, optional Mann–Whitney tests, and sleep-deprivation quality checks using recorded stimulus times (`stimulus_range`). |
+| [Sleep plots and deprivation analysis](docs/NOTEBOOK_SLEEP.md) | `sleep_notebook` | Heatmaps, sleep time courses, rebound comparisons, optional Mann–Whitney tests, and sleep-deprivation quality checks. |
 | [Survival analysis](docs/SURVIVAL_ANALYSIS.md) | `survival` | Death or censoring times for every animal, Kaplan–Meier plots and curve tables, confidence intervals, and numbers still at risk. Optional log-rank tests can account for temperature or other groups and apply Holm correction. |
 
 ## Reproducibility
@@ -74,8 +74,9 @@ You can review the settings before running an analysis. Source files stay
 unchanged, and results include a record of how they were produced. You can
 supply reviewed death or censoring times; the original estimates are kept.
 
-Sleep-deprivation quality checks use recorded stimulus times (`stimulus_range`)
-and report which flies were excluded and why. Activity analysis and other
+Sleep-deprivation quality checks use the deprivation schedule you set on the
+Ethoscope when starting a recording, saved in its recording metadata. They
+report which flies were excluded and why. Activity analysis and other
 planned features are on the [roadmap](docs/ROADMAP.md).
 
 Release checks are tracked in the [release checklist](docs/RELEASE_CHECKLIST.md).
@@ -91,8 +92,8 @@ local data from a trusted source.
   Desktop, or Python to run analyses directly.
 - **Trusted local Ethoscopy pickle files** with the behavioural columns and
   metadata required by your analysis. Sleep workflows require saved sleep
-  annotations; metadata-driven deprivation checks require `stimulus_range`
-  in the saved metadata or an exported acquisition-metadata CSV.
+  annotations. Deprivation checks also need the recording metadata containing
+  the deprivation schedule, either saved with the data or supplied as a metadata CSV.
 - **Configured local directories:** set `ETHOSCOPY_DATA_ROOTS` to your experiment
   directories and `ETHOSCOPY_ARTIFACT_ROOT` to an existing, writable output
   directory.
