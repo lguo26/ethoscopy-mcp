@@ -190,32 +190,20 @@ for configuration locations and troubleshooting.
 
 ## Example Usage
 
-Once configured, you can ask Codex/Claude things like:
+Ask in plain language. You do not need to name tools or write a recipe:
 
-- “Inspect the experiment in `/path/to/experiment` and show the available groups
-  and metadata.”
-- “Preview a survival analysis using `moving` and `walk`, with a 12-hour zero-run
-  threshold. Compare experimental groups, such as sleep-deprived versus control
-  or 25 °C versus 29 °C.”
-- “Compare survival between the named treatment groups using log-rank tests.
-  Account for temperature and apply Holm correction across the comparisons.”
-- “Create sleep heatmaps and time-course plots for control and sleep-deprived
-  flies using the saved sleep annotations.”
-- “Use `stimulus_range` metadata to identify each fly's deprivation window.
-  Exclude deprived flies sleeping more than 5% during that window, keep controls,
-  and save a table explaining the exclusions.”
-- “Compare sleep during the first three hours after deprivation ends, using the
-  aligned rebound window. Show per-fly values and run a two-sided Mann–Whitney
-  test between control and deprived flies.”
-- “Use my reviewed death/censor endpoint CSV for sleep summaries, keeping
-  temperature and OD600 groups separate.”
-- “Show the plots, summary tables, and analysis record for the completed run.”
+- “Show me the groups in this experiment.”
+- “Run survival analysis on `/path/to/experiment.pkl`.”
+- “Compare survival between the treatment groups. Are the differences significant?”
+- “Run sleep analysis on this file.”
+- “Compare sleep between control and sleep-deprived flies.”
+- “Compare these results with the previous analysis in the same folder.”
+- “Show me the plots and results.”
 
-Replace example paths with files inside your configured data roots. The client
-uses the available MCP tools to inspect inputs and preview a recipe before
-running it. Required metadata, time alignment, and analysis windows must be
-resolved before execution; rebound comparisons require recorded post-deprivation
-sleep data. See [client configuration](docs/CLIENT_CONFIGURATION.md) for setup.
+Provide the file path with your first request. The assistant can use it for
+follow-up requests, inspect the metadata, and prepare the analysis settings.
+It will ask if important information is missing and show a preview before
+running. You can also specify settings or ask it to use those in your notebook.
 
 ## Available Tools
 
