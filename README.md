@@ -31,7 +31,7 @@ language model.
 | --- | --- | --- |
 | [Sleep summaries](docs/SLEEP_ANALYSIS.md) | `sleep` | Sleep profiles, per-fly summaries, and descriptive group comparisons using reviewed death/censor endpoints. |
 | [Sleep plots and deprivation analysis](docs/NOTEBOOK_SLEEP.md) | `sleep_notebook` | Heatmaps, sleep time courses, rebound comparisons, optional Mann–Whitney tests, and SD quality checks using `stimulus_range`. |
-| [Kaplan–Meier survival analysis](docs/SURVIVAL_ANALYSIS.md#kaplanmeier-survival-analysis) | `survival` | Complete per-animal event/censor CSVs, Kaplan–Meier plots and curve tables with confidence intervals and risk counts, plus optional stratified log-rank tests with Holm correction. |
+| [Survival analysis](docs/SURVIVAL_ANALYSIS.md) | `survival` | Complete per-animal event/censor CSVs, Kaplan–Meier plots and curve tables with confidence intervals and risk counts, plus optional stratified log-rank tests with Holm correction. |
 
 All three workflows use `preview_analysis` and `run_analysis` from the
 [six available MCP tools](#available-tools). Survival recipes can also run through
