@@ -49,11 +49,13 @@ be reviewed and rerun through either MCP or the shared Python service.
   retrieval checks their paths, sizes, and hashes. Exports beside the source
   pickle keep plots, tables, and provenance together.
 
-Keep the original inputs, overlays, recipe, and software environment to rerun
-an analysis. Provenance records versions but does not package the environment.
-Fresh notebook-style sleep plots may vary in bootstrap confidence intervals
-and point jitter; cached artifacts remain byte-verified. Reproducible execution
-supports review but does not establish that a comparison is scientifically valid.
+Keep the original inputs, identity mappings, recipe, and software environment
+to rerun an analysis. Provenance records software versions but does not package
+the environment. Survival recipes also record requested comparisons, filters,
+and strata; log-rank results include Holm-adjusted p-values. Fresh notebook-style
+sleep plots may vary in bootstrap confidence intervals and point jitter, while
+cached artifacts remain hash-verified. Reproducibility does not remove
+confounding or validate statistical assumptions.
 
 ## Status
 
