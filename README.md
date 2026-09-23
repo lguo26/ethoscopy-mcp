@@ -33,17 +33,6 @@ language model.
 | [Sleep plots and deprivation analysis](docs/NOTEBOOK_SLEEP.md) | `sleep_notebook` | Heatmaps, sleep time courses, rebound comparisons, optional Mann–Whitney tests, and SD quality checks using `stimulus_range`. |
 | [Survival analysis](docs/SURVIVAL_ANALYSIS.md) | `survival` | Complete per-animal event/censor CSVs, Kaplan–Meier plots and curve tables with confidence intervals and risk counts, plus optional stratified log-rank tests with Holm correction. |
 
-All three workflows use `preview_analysis` and `run_analysis` from the
-[six available MCP tools](#available-tools). Survival recipes can also run through
-the dedicated `run_kaplan_meier` tool. You can request these analyses in plain
-language; see [Example Usage](#example-usage). Python and MCP use the same
-shared implementation.
-
-Try the [synthetic survival example](examples/synthetic_survival/README.md),
-[synthetic sleep example](examples/synthetic_sleep/README.md), or
-[synthetic deprivation and rebound example](examples/synthetic_notebook_sleep/README.md)
-without private experiment data.
-
 ## Reproducibility
 
 Each analysis follows **inspect → preview → approve the exact recipe hash →
