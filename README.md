@@ -183,6 +183,10 @@ conflicts block execution until resolved.
 | `run_kaplan_meier` | Run Kaplan–Meier analysis with a survival recipe and its approved preview hash. |
 | `get_analysis` | Get a completed run's summary and paths to result files. |
 | `get_artifact` | Check a result file and return its details and local path. |
+| `register_experiment` | Create or revise a private experiment work record. |
+| `list_experiments` | List registered conditions, statuses, revisions, and run references. |
+| `link_experiment_analysis` | Verify and attach an existing run, then rebuild the dashboard. |
+| `build_experiment_dashboard` | Generate the offline overview and OD600 condition tree. |
 
 Your AI client passes the preview hash to the run tool. Python users can call
 the same analysis service directly; see the [Python example](docs/QUICKSTART.md).
@@ -235,3 +239,11 @@ AI-assistance attribution. Contributions are welcome under the process in
 `GPL-3.0-only`. Third-party packages remain under their own licenses. Private
 research datasets and generated experiment artifacts are not distributed by
 this repository and are not licensed by this software license.
+
+### Experiment work records
+
+Opt-in registration links successful analyses to private local work records and
+rebuilds an offline dashboard with condition filters, verified plots, and an OD600
+condition tree. Recording status remains explicit. See the
+[experiment registry workflow](docs/EXPERIMENT_REGISTRY.md) for the four tools,
+revision handling, and examples. Folder discovery is not automatic.

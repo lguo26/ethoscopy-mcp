@@ -16,6 +16,9 @@ from ethoscopy_mcp.schemas import (
     SurvivalRecipe,
 )
 from ethoscopy_mcp.service import EthoscopyService
+from ethoscopy_mcp.experiment_records import (
+    ExperimentRecord, RegisteredExperiment, ExperimentRecords, DashboardResult,
+)
 
 
 READ_ONLY = types.ToolAnnotations(
@@ -57,6 +60,36 @@ def create_server(
             "return summaries and artifact references, never raw behavioural rows."
         ),
     )
+
+    @server.tool(annotations=LOCAL_WRITE, structured_output=True)
+    def register_experiment(record: ExperimentRecord, expected_revision: int = 0) -> RegisteredExperiment:
+        """Save a local work record; 0 creates, current revision updates.
+
+        Supply explicit conditions and recording status. Unknown fields stay unknown.
+        Registration opts matching experiment ID/source paths into automatic result
+        linking and dashboard rebuilding after successful analysis. Build the
+        dashboard explicitly after editing work records. Never infer exclusions.
+        """
+        return get_service().register_experiment(record, expected_revision)
+
+    @server.tool(annotations=READ_ONLY, structured_output=True)
+    def list_experiments() -> ExperimentRecords:
+        """List local work records, revisions, and linked verified-run references."""
+        return get_service().list_experiments()
+
+    @server.tool(annotations=LOCAL_WRITE, structured_output=True)
+    def link_experiment_analysis(analysis_id: str) -> RegisteredExperiment:
+        """Verify an existing run, link to its registered experiment, rebuild dashboard."""
+        return get_service().link_experiment_analysis(analysis_id)
+
+    @server.tool(annotations=LOCAL_WRITE, structured_output=True)
+    def build_experiment_dashboard() -> DashboardResult:
+        """Build offline HTML with filters, plots and an OD600 condition tree.
+
+        Reverify all linked artifacts. Do not aggregate overlapping run counts or
+        infer acquisition status. Refresh the browser after rebuilding.
+        """
+        return get_service().build_experiment_dashboard()
 
     @server.tool(annotations=READ_ONLY, structured_output=True)
     def inspect_experiment(manifest: ExperimentManifest) -> ExperimentSummary:

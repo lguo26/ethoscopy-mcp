@@ -10,6 +10,9 @@ from typing import Any, Iterable
 import pandas as pd
 
 from ethoscopy_mcp.config import Settings
+from ethoscopy_mcp.experiment_records import (
+    ExperimentStore, ExperimentRecord, RegisteredExperiment, ExperimentRecords, DashboardResult,
+)
 from ethoscopy_mcp.execution import execute_survival, load_analysis_result
 from ethoscopy_mcp.exports import export_analysis
 from ethoscopy_mcp.errors import InvalidExperimentError
@@ -39,6 +42,30 @@ class EthoscopyService:
     def __init__(self, settings: Settings):
         self.settings = settings
         self.registry = SourceRegistry(settings)
+        self.experiments = ExperimentStore(settings)
+
+    def register_experiment(self, record: ExperimentRecord, expected_revision: int = 0) -> RegisteredExperiment:
+        """Create/update confirmed work records, preserving linked analyses."""
+        return self.experiments.register(record, expected_revision)
+
+    def list_experiments(self) -> ExperimentRecords:
+        return self.experiments.list()
+
+    def build_experiment_dashboard(self) -> DashboardResult:
+        from ethoscopy_mcp.experiment_dashboard import build_dashboard
+        return build_dashboard(self.experiments, self.get_analysis)
+
+    def link_experiment_analysis(self, analysis_id: str) -> RegisteredExperiment:
+        """Attach a verified existing run using its immutable provenance sources."""
+        import json
+        result = self.get_analysis(analysis_id)
+        provenance = json.loads(result.provenance_path.read_text())
+        sources = [s["path"] for s in provenance["sources"]]
+        entry = self.experiments.attach(result, sources)
+        if entry is None:
+            raise InvalidExperimentError("Register this experiment before linking its analysis")
+        self.build_experiment_dashboard()
+        return entry
 
     def inspect_experiment(self, manifest: ExperimentManifest) -> ExperimentSummary:
         sources = tuple(self.registry.register(path) for path in manifest.source_paths)
@@ -127,7 +154,16 @@ class EthoscopyService:
         verified = self.get_analysis(result.analysis_id)
         source = self.settings.resolve_source(preview.sources[0].path)
         destination = export_analysis(source, verified)
-        return result.model_copy(update={"export_directory": destination})
+        result = result.model_copy(update={"export_directory": destination})
+        # A registry failure must not misrepresent a successfully completed analysis.
+        try:
+            if self.settings.artifact_root and (self.settings.artifact_root / "experiment_registry" / "records.json").exists():
+                if self.experiments.attach(result, manifest.source_paths) is not None:
+                    dashboard = self.build_experiment_dashboard()
+                    result = result.model_copy(update={"dashboard_path": dashboard.path})
+        except Exception as exc:
+            result = result.model_copy(update={"dashboard_warning": f"Analysis completed; registry/dashboard update failed: {exc}"})
+        return result
 
     def get_analysis(self, analysis_id: str) -> AnalysisRunResult:
         """Return a completed run after validating all referenced artifacts."""

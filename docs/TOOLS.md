@@ -59,9 +59,23 @@ Return structured results, warnings, provenance, and artifact references.
 Resolve a generated table, PNG, SVG, or other output without embedding large
 files directly in ordinary tool text.
 
-These six tools run through the local MCP server. Inspection, preview, and
-retrieval are marked read-only. The two run tools create new result files or
-reuse matching results; they do not modify source data.
+### Experiment work records
+
+- `register_experiment(record, expected_revision=0)` creates or revises a local
+  record with explicit conditions, recording status, and next actions.
+- `list_experiments()` reads current records and their revisions.
+- `link_experiment_analysis(analysis_id)` verifies and attaches an existing run.
+- `build_experiment_dashboard()` renders offline HTML with filters, PNG previews,
+  per-run counts, and a condition tree with separate OD600 branches.
+
+See [the registry workflow](EXPERIMENT_REGISTRY.md) for schemas, examples and
+failure/retry behavior. Registration opts matching analyses into automatic
+linking and dashboard rebuilding. Folder discovery is not implemented.
+
+These ten tools run through the local MCP server. Inspection, preview, retrieval,
+and registry listing are read-only. Run tools write verified results; registry
+registration/linking and dashboard building write local work records or HTML.
+They do not modify source data.
 
 ## Approval flow
 

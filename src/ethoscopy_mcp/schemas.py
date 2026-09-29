@@ -477,6 +477,8 @@ class AnalysisRunResult(StrictModel):
     created_at: datetime
     run_directory: Path
     export_directory: Path | None = None
+    dashboard_path: Path | None = None
+    dashboard_warning: str | None = None
     reused_existing: bool
     artifacts: tuple[ArtifactReference, ...]
     group_outcomes: tuple[GroupOutcome, ...]

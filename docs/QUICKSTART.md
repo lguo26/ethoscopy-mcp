@@ -59,9 +59,10 @@ Multiple data roots use `:` on Linux/macOS and `;` on Windows.
 
 Follow [Add to Codex](CLIENT_CONFIGURATION.md#add-to-codex) or
 [Add to Claude Desktop](CLIENT_CONFIGURATION.md#add-to-claude-desktop).
-The client starts the installed `ethoscopy-mcp` program and provides six tools:
+The client starts the installed `ethoscopy-mcp` program and provides ten tools:
 `inspect_experiment`, `preview_analysis`, `run_analysis`, `run_kaplan_meier`,
-`get_analysis`, and `get_artifact`. You can ask for analyses in plain language;
+`get_analysis`, `get_artifact`, `register_experiment`, `list_experiments`,
+`link_experiment_analysis`, and `build_experiment_dashboard`. You can ask for analyses in plain language;
 the client handles the tool calls.
 
 ## 5. Inspect, preview, and run

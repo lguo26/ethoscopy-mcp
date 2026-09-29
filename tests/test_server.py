@@ -41,6 +41,10 @@ class MCPServerTests(unittest.IsolatedAsyncioTestCase):
                     "run_kaplan_meier",
                     "get_analysis",
                     "get_artifact",
+                    "register_experiment",
+                    "list_experiments",
+                    "link_experiment_analysis",
+                    "build_experiment_dashboard",
                 },
             )
             self.assertTrue(tools["inspect_experiment"].annotations.read_only_hint)
