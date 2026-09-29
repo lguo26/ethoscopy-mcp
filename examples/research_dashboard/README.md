@@ -6,6 +6,17 @@ zoom, scrolling, PNG/SVG downloads, Escape dismissal and focus restoration.
 All experiment values and plots are synthetic. The Fly Cell Atlas citation is
 an example reference; no downloaded research dataset is redistributed.
 
+## Ready-to-view demo
+
+- [Interactive HTML demo](demo/research_notebook_demo.html) — download the file
+  and open it in your browser; figures and styling are embedded.
+- [Four-page PDF demo](demo/research_notebook_demo.pdf) — preview or download.
+
+These are saved presentation snapshots using only labelled synthetic data.
+The HTML includes interactive figure zoom; the PDF is a static handout.
+External source-paper links require internet access. Rebuilding the example
+below does not overwrite these saved demo snapshots.
+
 ## Build and open
 
 From the repository root, with Python 3.12 or newer:
