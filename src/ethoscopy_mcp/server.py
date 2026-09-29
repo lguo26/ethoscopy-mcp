@@ -84,7 +84,7 @@ def create_server(
 
     @server.tool(annotations=LOCAL_WRITE, structured_output=True)
     def build_experiment_dashboard() -> DashboardResult:
-        """Build offline HTML with filters, plots and an OD600 condition tree.
+        """Build offline HTML with filters, plots and a condition tree.
 
         Reverify all linked artifacts. Do not aggregate overlapping run counts or
         infer acquisition status. Refresh the browser after rebuilding.

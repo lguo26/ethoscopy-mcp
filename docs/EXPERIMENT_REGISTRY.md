@@ -69,7 +69,7 @@ remain in the approved analysis recipe, not the experiment register.
 
 Conditions have stable IDs, treatment, method, food, temperature, sex, OD600,
 control flag, OA route, and planned count. Missing values remain unknown.
-The tree groups method → food → temperature → treatment → OD600 → date/sex.
+The tree groups related experimental conditions, with separate branches for recorded doses.
 Control conditions omit the dose branch. Unknown doses have a separate branch;
 OA routes are recorded explicitly and never inferred from treatment names.
 

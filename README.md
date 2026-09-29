@@ -186,7 +186,7 @@ conflicts block execution until resolved.
 | `register_experiment` | Create or revise a private experiment work record. |
 | `list_experiments` | List registered conditions, statuses, revisions, and run references. |
 | `link_experiment_analysis` | Verify and attach an existing run, then rebuild the dashboard. |
-| `build_experiment_dashboard` | Generate the offline overview and OD600 condition tree. |
+| `build_experiment_dashboard` | Generate the offline overview and condition tree. |
 
 For work records and dashboards, see the [registry workflow](docs/EXPERIMENT_REGISTRY.md).
 A separate [visual dashboard example](examples/research_dashboard) adds formatted

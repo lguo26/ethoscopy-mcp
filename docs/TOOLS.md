@@ -66,7 +66,7 @@ files directly in ordinary tool text.
 - `list_experiments()` reads current records and their revisions.
 - `link_experiment_analysis(analysis_id)` verifies and attaches an existing run.
 - `build_experiment_dashboard()` renders offline HTML with filters, PNG previews,
-  per-run counts, and a condition tree with separate OD600 branches.
+  per-run counts, and a condition tree.
 
 See [the registry workflow](EXPERIMENT_REGISTRY.md) for schemas, examples and
 failure/retry behavior. Registration opts matching analyses into automatic
