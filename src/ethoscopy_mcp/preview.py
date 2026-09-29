@@ -47,18 +47,23 @@ def preview_survival(
 
     mapping_source = registry.register_auxiliary(recipe.identity_overlay.mapping_path)
     mapping = pd.read_csv(mapping_source.path, dtype={"roi": "string"})
-    _validate_mapping_schema(mapping, recipe)
-
     frames = [load_behaviour_pickle(source) for source in inspection.sources]
     metadata = pd.concat([frame.meta for frame in frames], axis=0, copy=False)
     data_ids = _id_set(frames)
     metadata_ids = _frame_ids(metadata)
-    _validate_mapping_against_sources(mapping, metadata, metadata_ids, data_ids, recipe)
+    from ethoscopy_mcp.survival_inputs import prepare_metadata, select_cohort
+    auxiliary = []
+    external = None
+    if recipe.metadata_csv:
+        csv_source = registry.register_auxiliary(recipe.metadata_csv.path)
+        auxiliary.append(csv_source)
+        external = pd.read_csv(csv_source.path)
+    metadata, mapping, conflicts, _ = prepare_metadata(metadata, mapping, recipe, external)
+    _validate_mapping_schema(mapping, recipe)
+    _validate_mapping_against_sources(mapping, metadata, metadata_ids, data_ids, recipe,
+                                      check_consistency=False)
     _validate_survival_columns(frames, recipe)
-
-    cohort_mapping = _apply_filters(mapping, recipe.cohort_filters)
-    if cohort_mapping.empty:
-        raise InvalidExperimentError("Cohort filters select no metadata rows")
+    cohort_mapping, exclusions, _ = select_cohort(mapping, recipe)
 
     key_columns = list(recipe.identity_overlay.individual_key_columns)
     group_column = recipe.group.column
@@ -76,6 +81,16 @@ def preview_survival(
         )
 
     warnings = list(inspection.warnings)
+    for conflict in conflicts:
+        warnings.append(ValidationWarning(code="metadata_conflict", severity=WarningSeverity.ERROR,
+            message=f"{conflict.source}: {conflict.column!r} differs from source metadata for "
+                    f"{conflict.mismatched_rows} rows. Resolve or explicitly correct before running."))
+    covered = pd.Series(False, index=cohort_mapping.index)
+    for level in recipe.group.levels:
+        covered |= _values_equal(cohort_mapping[group_column], level.value)
+    if not covered.all():
+        warnings.append(ValidationWarning(code="unlabelled_analysis_group", severity=WarningSeverity.ERROR,
+            message="Some selected animals have no configured group label."))
     for message in recipe.context_warnings:
         warnings.append(
             ValidationWarning(code="scientific_context", message=message)
@@ -169,14 +184,19 @@ def preview_survival(
             "censoring. Sparse events and crossing curves limit inference; shared machine effects "
             "are not adjusted automatically. Non-significance does not establish equivalence."
         )))
-    auxiliary = []
+    if exclusions:
+        transformations += (TransformationPreview(operation="animal_exclusions",
+            description=f"Exclude {len(exclusions)} mapped animals and all their recording segments; export reasons."),)
+    if recipe.metadata_corrections:
+        transformations = (TransformationPreview(operation="metadata_corrections",
+            description=f"Apply {len(recipe.metadata_corrections)} explicit metadata corrections in working copies before baseline alignment; export original values and reasons."), *transformations)
     for path, reviewed in ((recipe.reviewed_endpoints_path, True), (recipe.reference_endpoints_path, False)):
         if path is not None:
             source = registry.register_auxiliary(path)
             read_endpoints(source.path, cohort_mapping, reviewed=reviewed)
             auxiliary.append(source)
             registry.assert_auxiliary_unchanged(source)
-    if recipe.review_diagnostics or auxiliary:
+    if recipe.review_diagnostics or recipe.reviewed_endpoints_path or recipe.reference_endpoints_path:
         warnings.append(ValidationWarning(code="survival_review", message=(
             "Export per-fly estimates, candidate evidence and post-restart movement flags; "
             "flags do not automatically change death estimates. Reviewed endpoints, if supplied, "
@@ -187,6 +207,8 @@ def preview_survival(
     for source in inspection.sources:
         registry.assert_unchanged(source)
     registry.assert_auxiliary_unchanged(mapping_source)
+    for source in auxiliary:
+        registry.assert_auxiliary_unchanged(source)
 
     return AnalysisPreview(
         recipe_id=recipe.recipe_id,
@@ -212,6 +234,9 @@ def preview_survival(
         baseline_alignment=recipe.baseline_alignment,
         time_alignment=recipe.time_alignment,
         death_detection=recipe.death_detection,
+        exclusions=exclusions,
+        metadata_conflicts=conflicts,
+        metadata_corrections=recipe.metadata_corrections,
         transformations=transformations,
         expected_artifacts=tuple(
             ArtifactPreview(
@@ -222,7 +247,11 @@ def preview_survival(
             for request in recipe.output_requests
         ) + (tuple(ArtifactPreview(artifact_type="table", format="csv", name=name)
                    for name in ("survival_review.csv", "survival_candidates.csv"))
-             if recipe.review_diagnostics or auxiliary else ()),
+             if recipe.review_diagnostics or recipe.reviewed_endpoints_path or recipe.reference_endpoints_path else ())
+        + tuple(ArtifactPreview(artifact_type="table", format="csv", name=name)
+                for name, enabled in (("exclusions.csv", bool(exclusions)),
+                                      ("metadata_corrections.csv", bool(recipe.metadata_corrections))) if enabled),
+        # Automatic audit tables cannot be omitted from an exclusion/correction run.
         assumptions=recipe.assumptions,
         warnings=tuple(warnings),
     )
@@ -278,6 +307,7 @@ def _validate_mapping_against_sources(
     metadata_ids: set[str],
     data_ids: set[str],
     recipe: SurvivalRecipe,
+    *, check_consistency: bool = True,
 ) -> None:
     source_column = recipe.identity_overlay.source_id_column
     mapping_ids = set(mapping[source_column].astype(str))
@@ -289,6 +319,9 @@ def _validate_mapping_against_sources(
         )
     if not data_ids.issubset(mapping_ids):
         raise InvalidExperimentError("Some data IDs are absent from the identity overlay")
+
+    if not check_consistency:
+        return
 
     metadata_by_id = metadata.copy()
     if "id" in metadata_by_id.columns:
@@ -380,7 +413,7 @@ def _recipe_hash(
     auxiliary_hashes: tuple[str, ...] = (),
 ) -> str:
     payload = {
-        "survival_engine": "notebook-2.4-review-v2",
+        "survival_engine": "notebook-2.4-inputs-v3",
         "auxiliary_hashes": auxiliary_hashes,
         "ethoscopy_version": etho.__version__,
         "recipe": recipe.model_dump(mode="json"),

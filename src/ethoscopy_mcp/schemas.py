@@ -160,12 +160,51 @@ class LogRankComparison(StrictModel):
     strata_columns: tuple[str, ...] = ()
 
 
+class AnimalExclusion(StrictModel):
+    # A source recording ID identifies a whole mapped animal, across all segments.
+    original_id: str = Field(min_length=1)
+    reason: str = Field(min_length=1, pattern=r"\S")
+
+
+class MetadataCSV(StrictModel):
+    path: Path
+    key_columns: tuple[str, ...] = Field(default=("date", "machine_name", "region_id"), min_length=1)
+    # Empty means compare every shared scientific column.
+    columns: tuple[str, ...] = ()
+
+
+class MetadataCorrection(StrictModel):
+    original_id: str = Field(min_length=1)
+    column: str = Field(min_length=1)
+    value: ScalarValue
+    reason: str = Field(min_length=1, pattern=r"\S")
+
+
+class MetadataConflict(StrictModel):
+    source: str
+    column: str
+    mismatched_rows: int = Field(gt=0)
+    example_ids: tuple[str, ...]
+    source_values: tuple[str, ...]
+    compared_values: tuple[str, ...]
+
+
+class ExclusionPreview(StrictModel):
+    requested_id: str
+    reason: str
+    source_ids: tuple[str, ...]
+
+
 class SurvivalRecipe(StrictModel):
     schema_version: str = SCHEMA_VERSION
     recipe_id: str = Field(min_length=1, pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
     experiment_id: str = Field(min_length=1)
     analysis_type: Literal["survival"] = "survival"
     logrank_comparisons: tuple[LogRankComparison, ...] = ()
+    exclusions: tuple[AnimalExclusion, ...] = ()
+    metadata_csv: MetadataCSV | None = None
+    metadata_corrections: tuple[MetadataCorrection, ...] = ()
+    plot_title: str | None = Field(default=None, min_length=1, max_length=160)
     cohort_filters: dict[str, ScalarValue]
     group: GroupDefinition
     identity_overlay: IdentityOverlay
@@ -184,6 +223,10 @@ class SurvivalRecipe(StrictModel):
 
     @model_validator(mode="after")
     def validate_survival_outputs(self) -> "SurvivalRecipe":
+        excluded = [e.original_id for e in self.exclusions]
+        corrected = [(c.original_id, c.column) for c in self.metadata_corrections]
+        if len(excluded) != len(set(excluded)) or len(corrected) != len(set(corrected)):
+            raise ValueError("Exclusions and metadata correction targets must be unique")
         labels = {level.label for level in self.group.levels}
         names = [c.name for c in self.logrank_comparisons]
         if len(names) != len(set(names)):
@@ -396,6 +439,9 @@ class AnalysisPreview(StrictModel):
     baseline_alignment: BaselineAlignment
     time_alignment: TimeAlignment
     death_detection: DeathDetectionSettings | None = None
+    exclusions: tuple[ExclusionPreview, ...] = ()
+    metadata_conflicts: tuple[MetadataConflict, ...] = ()
+    metadata_corrections: tuple[MetadataCorrection, ...] = ()
     sleep: SleepSettings | None = None
     auxiliary_sources: tuple[SourceFile, ...] = ()
     deprivation_windows: tuple[ResolvedDeprivationWindow, ...] = ()

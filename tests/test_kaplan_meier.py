@@ -6,7 +6,7 @@ import pandas as pd
 from mcp import Client
 
 from ethoscopy_mcp import EthoscopyService, ExperimentManifest, Settings
-from ethoscopy_mcp.schemas import OutputRequest, LogRankComparison
+from ethoscopy_mcp.schemas import AnimalExclusion, OutputRequest, LogRankComparison
 from ethoscopy_mcp.server import create_server
 from test_preview import _write_transfer_fixture, _survival_recipe
 
@@ -17,6 +17,10 @@ class KaplanMeierMCPTests(unittest.IsolatedAsyncioTestCase):
             root = Path(directory)
             first, second, mapping = _write_transfer_fixture(root)
             recipe = _survival_recipe(mapping).model_copy(update={
+                "exclusions": (AnimalExclusion(
+                    original_id=pd.read_csv(mapping).iloc[0].original_id,
+                    reason="Confirmed synthetic tracking failure"),),
+                "plot_title": "Synthetic treatment comparison",
                 "logrank_comparisons": (LogRankComparison(name="infection", group_labels=("PBS", "S. aureus")),),
                 "output_requests": (
                 OutputRequest(artifact_type="table", format="csv", name="endpoints", dataset="individuals"),
@@ -31,6 +35,8 @@ class KaplanMeierMCPTests(unittest.IsolatedAsyncioTestCase):
                               read_timeout_seconds=30) as client:
                 args = {"manifest": manifest.model_dump(mode="json"), "recipe": recipe.model_dump(mode="json")}
                 preview = await client.call_tool("preview_analysis", args)
+                self.assertEqual(len(preview.structured_content["exclusions"]), 1)
+                self.assertEqual(sum(c["individuals_with_data"] for c in preview.structured_content["cohorts"]), 3)
                 bad = await client.call_tool("run_kaplan_meier", {**args, "approved_recipe_hash": "0" * 64})
                 self.assertTrue(bad.is_error)
                 result = await client.call_tool("run_kaplan_meier", {**args,
@@ -39,13 +45,14 @@ class KaplanMeierMCPTests(unittest.IsolatedAsyncioTestCase):
                 artifacts = {a["name"]: a for a in result.structured_content["artifacts"]}
                 endpoints = pd.read_csv(artifacts["endpoints"]["path"])
                 curves = pd.read_csv(artifacts["km"]["path"])
-                self.assertEqual(len(endpoints), 4)
+                self.assertEqual(len(endpoints), 3)
+                self.assertIn("exclusions.csv", artifacts)
                 self.assertTrue(endpoints.id.is_unique)
                 self.assertEqual(int(curves.n_events.sum()), int(endpoints.E.sum()))
                 self.assertEqual(int(curves.n_censored.sum()), int((endpoints.E == 0).sum()))
                 statistics = pd.read_csv(artifacts["statistics"]["path"])
                 self.assertEqual(len(statistics), 1)
                 self.assertEqual(statistics.iloc[0].correction, "Holm")
-                self.assertEqual(statistics.iloc[0].n_a + statistics.iloc[0].n_b, 4)
+                self.assertEqual(statistics.iloc[0].n_a + statistics.iloc[0].n_b, 3)
                 retrieved = await client.call_tool("get_analysis", {"analysis_id": result.structured_content["analysis_id"]})
                 self.assertFalse(retrieved.is_error)

@@ -92,7 +92,7 @@ def execute_survival(
                     "original_deaths_with_post_restart_movement": int(evidence.warning.ne("").sum()),
                 }
             extra = []
-            for filename, report in reports.items():
+            for filename, report in {**reports, **table.attrs.get("audit_reports", {})}.items():
                 if (temporary / filename).exists():
                     raise InvalidExperimentError(f"Reserved review artifact filename: {filename}")
                 report.to_csv(temporary / filename, index=False)
@@ -117,6 +117,8 @@ def execute_survival(
             "warnings": [warning.model_dump(mode="json") for warning in preview.warnings],
             "group_outcomes": [outcome.model_dump(mode="json") for outcome in group_outcomes],
             "review_summary": review_summary,
+            "exclusions": [e.model_dump(mode="json") for e in preview.exclusions],
+            "metadata_corrections": [c.model_dump(mode="json") for c in preview.metadata_corrections],
             "artifacts": [artifact.model_dump(mode="json") for artifact in requested_artifacts],
         }
         _write_json(temporary / PROVENANCE_NAME, provenance)
@@ -214,16 +216,25 @@ def _run_recipe(
         del loaded
     combined = etho.concat(*frames)
     del frames
+    from ethoscopy_mcp.survival_inputs import prepare_metadata, select_cohort
+    overlay = recipe.identity_overlay
+    mapping = pd.read_csv(preview.identity_overlay.source.path, dtype={"roi": "string"})
+    mapping[overlay.source_id_column] = mapping[overlay.source_id_column].astype(str)
+    mapping[overlay.analysis_id_column] = mapping[overlay.analysis_id_column].astype(str)
+    external = None
+    if recipe.metadata_csv:
+        source = next(s for s in preview.auxiliary_sources
+                      if s.path == recipe.metadata_csv.path.resolve())
+        external = pd.read_csv(source.path)
+    corrected_meta, mapping, conflicts, corrections = prepare_metadata(combined.meta, mapping, recipe, external)
+    if conflicts:
+        raise InvalidExperimentError("Unresolved metadata conflicts at execution")
+    combined.meta = corrected_meta
     working = combined.baseline(
         column=recipe.baseline_alignment.metadata_column,
         day_length=recipe.baseline_alignment.day_length_hours,
     )
     del combined
-
-    overlay = recipe.identity_overlay
-    mapping = pd.read_csv(preview.identity_overlay.source.path, dtype={"roi": "string"})
-    mapping[overlay.source_id_column] = mapping[overlay.source_id_column].astype(str)
-    mapping[overlay.analysis_id_column] = mapping[overlay.analysis_id_column].astype(str)
     mapping_by_source = mapping.set_index(overlay.source_id_column, drop=False)
     id_map = mapping_by_source[overlay.analysis_id_column].to_dict()
 
@@ -242,12 +253,6 @@ def _run_recipe(
     if metadata.index.isna().any():
         raise InvalidExperimentError("Identity overlay failed to map metadata IDs")
 
-    label_map = {level.value: level.label for level in recipe.group.levels}
-    metadata["species"] = metadata[recipe.group.column].map(label_map)
-    if metadata["species"].isna().any():
-        raise InvalidExperimentError("A group value has no configured display label")
-    working.meta = metadata
-
     working["t"] = (
         pd.to_numeric(working["t"], errors="raise")
         - recipe.time_alignment.subtract_hours * 3600
@@ -256,13 +261,13 @@ def _run_recipe(
         working = working.loc[working["t"] >= 0].copy()
         working.meta = metadata
 
-    selected_mapping = mapping.copy()
-    for column, value in recipe.cohort_filters.items():
-        selected_mapping = selected_mapping.loc[
-            _values_equal(selected_mapping[column], value)
-        ]
+    selected_mapping, _, exclusion_table = select_cohort(mapping, recipe)
     selected_ids = set(selected_mapping[overlay.analysis_id_column].astype(str))
     selected_meta = metadata.loc[metadata.index.isin(selected_ids)].copy()
+    label_map = {level.value: level.label for level in recipe.group.levels}
+    selected_meta["species"] = selected_meta[recipe.group.column].map(label_map)
+    if selected_meta["species"].isna().any():
+        raise InvalidExperimentError("A selected group value has no configured display label")
     working = working.loc[working.index.isin(selected_ids)].copy()
     if working.empty:
         raise InvalidExperimentError("Approved cohort contains no usable observations")
@@ -311,7 +316,15 @@ def _run_recipe(
         from ethoscopy_mcp.survival_review import review_survival
         table, figure, reports = review_survival(working, recipe, death_settings, table, figure)
         table.attrs["review_reports"] = reports
+    # Review overrides may replace the figure; apply the same readable title last.
+    figure.axes[0].set_title(_plot_title(working, recipe))
     _style_figure(figure)
+    audits = {}
+    if recipe.exclusions:
+        audits["exclusions.csv"] = exclusion_table
+    if recipe.metadata_corrections:
+        audits["metadata_corrections.csv"] = corrections
+    table.attrs["audit_reports"] = audits
     if any(r.dataset in {"individuals", "kaplan_meier", "statistics"} for r in recipe.output_requests):
         from ethoscopy.survival import kaplan_meier
 
@@ -414,39 +427,53 @@ def _group_outcomes(
 
 
 def _style_figure(figure: Any) -> None:
+    import textwrap
+
     figure.set_size_inches(12.8, 7.2)
     axis = figure.axes[0]
-    axis.set_xlabel("Days from first recorded sample", fontsize=20, labelpad=12)
-    axis.set_ylabel("Survival probability", fontsize=20, labelpad=12)
-    axis.title.set_fontsize(24)
-    axis.tick_params(axis="both", labelsize=18)
-    legend = axis.get_legend()
-    if legend is not None:
-        legend.set_frame_on(False)
-        for text in legend.get_texts():
-            text.set_fontsize(18)
+    axis.set_xlabel("Days from first recorded sample", fontsize=14, labelpad=10)
+    axis.set_ylabel("Survival probability", fontsize=14, labelpad=10)
+    axis.set_title(textwrap.fill(axis.get_title(), width=85), fontsize=17)
+    axis.tick_params(axis="both", labelsize=12)
+    handles, labels = axis.get_legend_handles_labels()
+    if handles:
+        axis.legend(handles, [textwrap.fill(label, width=48) for label in labels],
+                    loc="upper center", bbox_to_anchor=(0.5, -0.17),
+                    ncol=2 if len(labels) > 1 else 1, frameon=False, fontsize=11)
     for annotation in list(axis.texts):
         if "deaths" in annotation.get_text() and "tw=" in annotation.get_text():
             annotation.remove()
-    figure.subplots_adjust(left=0.12, right=0.97, bottom=0.16, top=0.88)
+    figure.subplots_adjust(left=0.10, right=0.97, bottom=0.28, top=0.86)
+    # Fit long labels/many groups without clipping or covering the survival curves.
+    figure.canvas.draw()
+    legend = axis.get_legend()
+    if legend is not None:
+        box = legend.get_window_extent().transformed(figure.transFigure.inverted())
+        if box.y0 < 0.02:
+            bottom = 0.28 + 0.02 - box.y0
+            if bottom > 0.48:
+                height = figure.get_figheight() * (bottom / 0.48)
+                figure.set_figheight(height)
+                bottom = 0.48
+            figure.subplots_adjust(bottom=bottom)
 
 
 def _plot_title(working: pd.DataFrame, recipe: SurvivalRecipe) -> str:
-    cohort = ", ".join(f"{key}={value}" for key, value in recipe.cohort_filters.items())
+    if recipe.plot_title:
+        return recipe.plot_title
+    parts = ["Survival"]
+    for column in ("sex", "food"):
+        if column in working.meta:
+            values = working.meta[column].dropna().astype(str).unique()
+            if len(values) == 1:
+                parts.append(values[0].replace("_", " "))
     temperature_column = next(
-        (column for column in ("temperature", "tempreture") if column in working.meta),
-        None,
-    )
-    temperature = ""
+        (c for c in ("temperature", "tempreture") if c in working.meta), None)
     if temperature_column:
-        values = pd.to_numeric(
-            working.meta[temperature_column], errors="coerce"
-        ).dropna().unique()
+        values = pd.to_numeric(working.meta[temperature_column], errors="coerce").dropna().unique()
         if len(values):
-            temperature = " (" + ", ".join(
-                f"{value:g} °C" for value in sorted(values)
-            ) + ")"
-    return f"Survival — {cohort}{temperature}"
+            parts.append(", ".join(f"{v:g} °C" for v in sorted(values)))
+    return " — ".join(parts)
 
 
 def _load_existing(result_path: Path, recipe_hash: str) -> AnalysisRunResult:
@@ -501,14 +528,6 @@ def _safe_component(value: str) -> str:
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", value):
         raise InvalidExperimentError(f"Unsafe artifact name: {value!r}")
     return value
-
-
-def _values_equal(series: pd.Series, expected: Any) -> pd.Series:
-    if isinstance(expected, bool):
-        return series.map(
-            lambda value: str(value).strip().lower() in {"true", "1", "yes"}
-        ).eq(expected)
-    return series.eq(expected)
 
 
 def _write_json(path: Path, payload: Any) -> None:

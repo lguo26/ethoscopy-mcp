@@ -170,6 +170,11 @@ running. You can also specify settings or ask it to use those in your notebook.
 
 ## Available Tools
 
+Survival recipes support [explicit exclusions, metadata consistency checks and
+corrections, and readable plot titles](docs/SURVIVAL_INPUTS.md). Exclusions and
+corrections are applied to working copies and exported as audit tables; metadata
+conflicts block execution until resolved.
+
 | Tool | Purpose |
 | --- | --- |
 | `inspect_experiment` | Summarize input files, behavioural columns, and metadata. |

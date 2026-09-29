@@ -95,6 +95,11 @@ def create_server(
         intervals and risk counts; request primary PNG/SVG for survival plots.
         Configure logrank_comparisons and a statistics CSV for two-sided
         log-rank tests with optional strata and Holm correction.
+        Use exclusions with original_id and reason to remove whole mapped animals.
+        Optional metadata_csv checks external metadata; unresolved conflicts block
+        execution. Explicit metadata_corrections apply only to working copies.
+        Exclusions and corrections automatically export audit CSVs. Set plot_title
+        for a custom readable title; group labels control the legend.
         Times in CSV outputs are hours from each subject's first retained sample.
         """
         return get_service().run_analysis(manifest, recipe, approved_recipe_hash)
