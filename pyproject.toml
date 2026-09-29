@@ -33,5 +33,8 @@ classifiers = [
 [project.scripts]
 ethoscopy-mcp = "ethoscopy_mcp.server:main"
 
+[project.optional-dependencies]
+dashboard = ["Markdown>=3.7,<4"]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/ethoscopy_mcp"]

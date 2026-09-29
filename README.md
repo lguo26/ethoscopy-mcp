@@ -247,3 +247,12 @@ rebuilds an offline dashboard with condition filters, verified plots, and an OD6
 condition tree. Recording status remains explicit. See the
 [experiment registry workflow](docs/EXPERIMENT_REGISTRY.md) for the four tools,
 revision handling, and examples. Folder discovery is not automatic.
+
+### Visual research dashboard example
+
+The [two-page research dashboard](examples/research_dashboard) demonstrates
+experiment/reference navigation, source-paper links, formatted Markdown reports,
+and a figure viewer with zoom and PNG/SVG downloads. Install `.[dashboard]` and
+run its builder to try the synthetic example. This optional presentation layer
+is separate from the MCP registry dashboard and does not execute analyses or
+publish private experiment records.

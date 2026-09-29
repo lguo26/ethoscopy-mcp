@@ -1,0 +1,24 @@
+<style>
+.figure-viewer{border:0;border-radius:12px;padding:0;width:96vw;max-width:1600px;height:92vh;max-height:96vh;color:#182c32;background:#f2f5f4}.figure-viewer::backdrop{background:#102526dc}.figure-viewer[open]{display:flex;flex-direction:column}.figure-tools{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:14px 18px;background:white;border-bottom:1px solid #c6d8d1}.figure-tools button,.figure-tools a{width:auto;margin:0;padding:8px 12px;font:inherit;font-size:14px;border:1px solid #b9ccca;border-radius:6px;background:white;color:#086466;cursor:pointer}.figure-tools [hidden]{display:none}.figure-title{flex:1;min-width:150px;font-weight:650;font-size:15px}.figure-stage{overflow:auto;flex:1;min-height:0;padding:16px}.figure-stage img{display:block;max-width:none;height:auto;background:white}.figure-help{margin:0;padding:8px 18px;font-size:13px}.figure-tools :focus-visible{outline:3px solid #ca9f39;outline-offset:3px}
+</style>
+<dialog class="figure-viewer" id="figure-viewer" aria-labelledby="figure-title"><div class="figure-tools"><span class="figure-title" id="figure-title">Figure</span><button type="button" data-action="out" aria-label="Zoom out">−</button><output aria-live="polite" id="figure-zoom">100%</output><button type="button" data-action="in" aria-label="Zoom in">+</button><button type="button" data-action="fit">Fit</button><a id="figure-png" download>Download PNG</a><a id="figure-svg" download hidden>Download SVG</a><button type="button" data-action="close" autofocus>Close</button></div><p class="figure-help">Zoom for detail, then scroll to explore. Press Escape to close.</p><div class="figure-stage" tabindex="0" aria-label="Scrollable figure"><img id="figure-image" alt=""></div></dialog>
+<script>
+(()=>{
+const files=__FIGURE_FILES__;
+const dialog=document.getElementById('figure-viewer'),picture=document.getElementById('figure-image'),stage=dialog.querySelector('.figure-stage'),zoomLabel=document.getElementById('figure-zoom');
+let scale=1,base=600,previousOverflow='',trigger;
+function resize(){picture.style.width=Math.round(base*scale)+'px';zoomLabel.textContent=Math.round(scale*100)+'%';}
+function fit(){base=Math.max(1,Math.min(picture.naturalWidth||800,stage.clientWidth-32,(stage.clientHeight-32)*(picture.naturalWidth||800)/(picture.naturalHeight||600)));scale=1;resize();stage.scrollTo(0,0);}
+document.addEventListener('click',e=>{
+const link=e.target.closest('a');if(!link||link.closest('dialog')||link.hasAttribute('download')||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey||e.button!==0)return;
+const key=link.getAttribute('href'),item=files[key];if(!item)return;
+e.preventDefault();trigger=link;
+const title=link.querySelector('img')?.alt||link.textContent.trim()||'Figure';document.getElementById('figure-title').textContent=title;picture.alt=title;
+for(const ext of ['png','svg']){const a=document.getElementById('figure-'+ext);a.hidden=!item[ext];if(item[ext]){a.href=item[ext];a.setAttribute('download',decodeURIComponent(item[ext].split('/').pop()));}else a.removeAttribute('href');}
+previousOverflow=document.body.style.overflow;document.body.style.overflow='hidden';dialog.showModal();picture.onload=fit;picture.src=item.png||item.svg;if(picture.complete&&picture.naturalWidth)fit();
+});
+dialog.addEventListener('click',e=>{const action=e.target.dataset.action;if(action==='close'||e.target===dialog)dialog.close();if(action==='fit')fit();if(action==='in'||action==='out'){scale=Math.min(8,Math.max(.25,scale*(action==='in'?1.5:1/1.5)));resize();}});
+dialog.addEventListener('close',()=>{document.body.style.overflow=previousOverflow;trigger?.focus();});
+window.addEventListener('resize',()=>{if(dialog.open)fit();});
+})();
+</script>

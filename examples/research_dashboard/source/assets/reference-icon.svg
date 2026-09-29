@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <title>Reference data — open book and connected data points</title>
+  <rect width="64" height="64" rx="15" fill="#153a3c"/>
+  <path d="M32 21c-7-5-15-6-23-3v31c8-3 16-2 23 3 7-5 15-6 23-3V18c-8-3-16-2-23 3Z" fill="#a4d9c4" fill-opacity=".15" stroke="#f0f6ed" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M32 22v29M15 27l10 2M15 34l10 2M15 41l10 2" stroke="#a4d9c4" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="m39 38 8-11 2 15" stroke="#d7b66c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <g fill="#d7b66c"><circle cx="39" cy="38" r="3"/><circle cx="47" cy="27" r="3"/><circle cx="49" cy="42" r="3"/></g>
+</svg>
