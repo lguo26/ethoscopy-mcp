@@ -170,6 +170,8 @@ running. You can also specify settings or ask it to use those in your notebook.
 
 ## Available Tools
 
+[Persistent reviewed exclusions](docs/REVIEWED_EXCLUSIONS.md) preserve experiment-level decisions and require explicit resolution before conflicting survival analyses.
+
 Survival recipes support [explicit exclusions, metadata consistency checks and
 corrections, and readable plot titles](docs/SURVIVAL_INPUTS.md). Exclusions and
 corrections are applied to working copies and exported as audit tables; metadata
@@ -184,6 +186,7 @@ conflicts block execution until resolved.
 | `get_analysis` | Get a completed run's summary and paths to result files. |
 | `get_artifact` | Check a result file and return its details and local path. |
 | `register_experiment` | Create or revise a private experiment work record. |
+| `record_exclusion_decision` | Save versioned researcher-confirmed survival exclusions for future previews. |
 | `list_experiments` | List registered conditions, statuses, revisions, and run references. |
 | `link_experiment_analysis` | Verify and attach an existing run, then rebuild the dashboard. |
 | `build_experiment_dashboard` | Generate the offline overview and condition tree. |

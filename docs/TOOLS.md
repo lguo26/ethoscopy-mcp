@@ -93,3 +93,7 @@ The `sleep_notebook` recipe directly calls Ethoscopy heatmap/overtime/quantify
 methods, optionally screens failed sleep deprivation, curates dead animals,
 applies explicit metadata exclusions and runs one requested Mann–Whitney test.
 See [Notebook sleep workflow](NOTEBOOK_SLEEP.md).
+
+## record_exclusion_decision
+
+Save a researcher-confirmed exclusion decision against registered source fingerprints using the current experiment revision. Inspection and survival preview surface matching decisions; recipe `decision_resolutions` must explicitly apply or override applicable decisions. See [contract and examples](REVIEWED_EXCLUSIONS.md).

@@ -104,3 +104,7 @@ use `get_analysis` or a dashboard rebuild to reverify their contents.
 Restart/reconnect the MCP server after installing updated code to load the new
 tool schemas. Existing project-specific HTML dashboards are not migrated or
 modified automatically; register their experiments to use this generic dashboard.
+
+## Reviewed survival exclusions
+
+See [persistent reviewed exclusions](REVIEWED_EXCLUSIONS.md) for append-only decisions, source applicability, preview conflict resolution and explicit sensitivity overrides.

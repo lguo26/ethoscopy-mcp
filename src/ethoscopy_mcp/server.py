@@ -14,6 +14,7 @@ from ethoscopy_mcp.schemas import (
     ExperimentSummary,
     AnalysisRecipe,
     SurvivalRecipe,
+    ExclusionDecisionRequest,
 )
 from ethoscopy_mcp.service import EthoscopyService
 from ethoscopy_mcp.experiment_records import (
@@ -72,6 +73,20 @@ def create_server(
         """
         return get_service().register_experiment(record, expected_revision)
 
+    @server.tool(annotations=LOCAL_WRITE, structured_output=True)
+    def record_exclusion_decision(experiment_id: str, decision: ExclusionDecisionRequest,
+                                  expected_revision: int) -> RegisteredExperiment:
+        """Append a versioned, researcher-confirmed survival exclusion decision.
+
+        Register source files first. Supply the current experiment revision, actual
+        confirmation context and exact source animal IDs. Never infer exclusion
+        from time-zero death alone. A new version supersedes but preserves history;
+        status retired withdraws the decision. Inspect/preview retrieve decisions
+        by source identity even for a new experiment name. Record new versions to
+        reconfirm changed source bytes. This tool does not authenticate humans.
+        """
+        return get_service().record_exclusion_decision(experiment_id, decision, expected_revision)
+
     @server.tool(annotations=READ_ONLY, structured_output=True)
     def list_experiments() -> ExperimentRecords:
         """List local work records, revisions, and linked verified-run references."""
@@ -101,7 +116,13 @@ def create_server(
     def preview_analysis(
         manifest: ExperimentManifest, recipe: AnalysisRecipe
     ) -> AnalysisPreview:
-        """Validate a survival or sleep recipe and return its exact approval hash."""
+        """Validate a recipe and return its exact approval hash.
+
+        Survival previews surface applicable reviewed exclusions. Resolve each in
+        decision_resolutions using apply or sensitivity_include, its current
+        revision, and a reason. Missing resolutions block execution. Apply adds
+        recorded exclusions to effective_survival_recipe for review and execution.
+        """
 
         return get_service().preview_analysis(manifest, recipe)
 

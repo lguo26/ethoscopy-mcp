@@ -42,6 +42,7 @@ class MCPServerTests(unittest.IsolatedAsyncioTestCase):
                     "get_analysis",
                     "get_artifact",
                     "register_experiment",
+                    "record_exclusion_decision",
                     "list_experiments",
                     "link_experiment_analysis",
                     "build_experiment_dashboard",

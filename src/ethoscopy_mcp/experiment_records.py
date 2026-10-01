@@ -12,7 +12,7 @@ from typing import Literal
 
 from pydantic import Field, model_validator
 
-from ethoscopy_mcp.schemas import StrictModel, AnalysisRunResult
+from ethoscopy_mcp.schemas import StrictModel, AnalysisRunResult, ReviewedExclusionDecision
 from ethoscopy_mcp.errors import InvalidExperimentError
 
 
@@ -55,6 +55,7 @@ class RegisteredExperiment(StrictModel):
     revision: int
     updated_at: datetime
     analyses: tuple[AnalysisRunResult, ...] = ()
+    exclusion_decisions: tuple[ReviewedExclusionDecision, ...] = ()
 
 
 class ExperimentRecords(StrictModel):
@@ -122,13 +123,37 @@ class ExperimentStore:
             revision = previous.revision if previous else 0
             if expected_revision != revision:
                 raise InvalidExperimentError(f"Revision conflict: current revision is {revision}")
-            if previous and previous.analyses and set(previous.record.source_paths) != set(sources):
-                raise InvalidExperimentError("Cannot change registered sources with linked analyses; use a new experiment ID")
+            if previous and (previous.analyses or previous.exclusion_decisions) and set(previous.record.source_paths) != set(sources):
+                raise InvalidExperimentError("Cannot change registered sources with linked analyses or decisions; use a new experiment ID")
             entry = RegisteredExperiment(record=record, revision=revision+1,
-                updated_at=datetime.now(timezone.utc), analyses=previous.analyses if previous else ())
+                updated_at=datetime.now(timezone.utc), analyses=previous.analyses if previous else (),
+                exclusion_decisions=previous.exclusion_decisions if previous else ())
             entries = [e for e in entries if e.record.experiment_id != record.experiment_id] + [entry]
             self.write(path, entries)
             return entry
+
+    def record_exclusion(self, experiment_id, request, expected_revision, sources):
+        """Append a decision version without rewriting earlier decisions or runs."""
+        with self.locked() as (path, entries):
+            for i, entry in enumerate(entries):
+                if entry.record.experiment_id != experiment_id:
+                    continue
+                if entry.revision != expected_revision:
+                    raise InvalidExperimentError(f"Revision conflict: current revision is {entry.revision}")
+                if set(entry.record.source_paths) != {s.path for s in sources}:
+                    raise InvalidExperimentError("Decision sources no longer match registration")
+                previous = [d for d in entry.exclusion_decisions if d.decision_id == request.decision_id]
+                if request.status == "retired" and not previous:
+                    raise InvalidExperimentError("Cannot retire a decision that does not exist")
+                decision = ReviewedExclusionDecision(**request.model_dump(), experiment_id=experiment_id,
+                    revision=max((d.revision for d in previous), default=0)+1,
+                    recorded_at=datetime.now(timezone.utc), sources=sources)
+                updated = entry.model_copy(update={"exclusion_decisions": (*entry.exclusion_decisions, decision),
+                    "revision": entry.revision+1, "updated_at": datetime.now(timezone.utc)})
+                entries[i] = updated
+                self.write(path, entries)
+                return updated
+            raise InvalidExperimentError("Register the experiment before recording decisions")
 
     def attach(self, result, source_paths):
         with self.locked() as (path, entries):

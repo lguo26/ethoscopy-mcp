@@ -29,6 +29,7 @@ def preview_survival(
     registry: SourceRegistry,
     inspection: ExperimentSummary,
     recipe: SurvivalRecipe,
+    decisions=(),
 ) -> AnalysisPreview:
     if recipe.death_detection.time_window_hours < 24:
         raise InvalidExperimentError(
@@ -63,6 +64,8 @@ def preview_survival(
     _validate_mapping_against_sources(mapping, metadata, metadata_ids, data_ids, recipe,
                                       check_consistency=False)
     _validate_survival_columns(frames, recipe)
+    from ethoscopy_mcp.reviewed_decisions import resolve_decisions, bind_decisions
+    recipe, decision_reviews, decision_warnings = resolve_decisions(decisions, inspection.sources, recipe, mapping)
     cohort_mapping, exclusions, _ = select_cohort(mapping, recipe)
 
     key_columns = list(recipe.identity_overlay.individual_key_columns)
@@ -80,7 +83,7 @@ def preview_survival(
             )
         )
 
-    warnings = list(inspection.warnings)
+    warnings = [*inspection.warnings, *decision_warnings]
     for conflict in conflicts:
         warnings.append(ValidationWarning(code="metadata_conflict", severity=WarningSeverity.ERROR,
             message=f"{conflict.source}: {conflict.column!r} differs from source metadata for "
@@ -204,6 +207,7 @@ def preview_survival(
         )))
     recipe_hash = _recipe_hash(recipe, inspection, mapping_source.sha256,
                                tuple(source.sha256 for source in auxiliary))
+    recipe_hash = bind_decisions(recipe_hash, decision_reviews)
     for source in inspection.sources:
         registry.assert_unchanged(source)
     registry.assert_auxiliary_unchanged(mapping_source)
@@ -211,6 +215,8 @@ def preview_survival(
         registry.assert_auxiliary_unchanged(source)
 
     return AnalysisPreview(
+        decision_reviews=decision_reviews,
+        effective_survival_recipe=recipe if decision_reviews else None,
         recipe_id=recipe.recipe_id,
         experiment_id=recipe.experiment_id,
         analysis_type=recipe.analysis_type,

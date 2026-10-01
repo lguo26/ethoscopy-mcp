@@ -47,6 +47,51 @@ class SourceFile(StrictModel):
     sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
 
 
+class AnimalExclusion(StrictModel):
+    # A source recording ID identifies a whole mapped animal, across all segments.
+    original_id: str = Field(min_length=1)
+    reason: str = Field(min_length=1, pattern=r"\S")
+
+
+class ExclusionDecisionRequest(StrictModel):
+    decision_id: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+    exclusions: tuple[AnimalExclusion, ...] = Field(min_length=1)
+    scope_description: str = Field(min_length=1, pattern=r"\S")
+    confirmed_by: str = Field(min_length=1, pattern=r"\S")
+    confirmation_note: str = Field(min_length=1, pattern=r"\S")
+    originating_analysis_id: str | None = None
+    status: Literal["active", "retired"] = "active"
+
+    @model_validator(mode="after")
+    def unique_animals(self):
+        ids = [e.original_id for e in self.exclusions]
+        if len(ids) != len(set(ids)):
+            raise ValueError("Decision exclusion IDs must be unique")
+        return self
+
+
+class ReviewedExclusionDecision(ExclusionDecisionRequest):
+    experiment_id: str
+    revision: int = Field(ge=1)
+    recorded_at: datetime
+    sources: tuple[SourceFile, ...] = Field(min_length=1)
+
+
+class DecisionResolution(StrictModel):
+    experiment_id: str
+    decision_id: str
+    revision: int = Field(ge=1)
+    action: Literal["apply", "sensitivity_include"]
+    reason: str = Field(min_length=1, pattern=r"\S")
+
+
+class DecisionReview(StrictModel):
+    decision: ReviewedExclusionDecision
+    status: Literal["unresolved", "applied", "sensitivity_include", "source_changed", "outside_cohort", "retired"]
+    affected_source_ids: tuple[str, ...] = ()
+    resolution: DecisionResolution | None = None
+
+
 class ColumnSummary(StrictModel):
     name: str
     dtypes: tuple[str, ...]
@@ -83,6 +128,7 @@ class ExperimentSummary(StrictModel):
     time_range: TimeRange | None = None
     warnings: tuple[ValidationWarning, ...] = ()
     source_hashes_verified: bool
+    reviewed_exclusions: tuple[ReviewedExclusionDecision, ...] = ()
 
 
 ScalarValue = str | int | float | bool
@@ -160,12 +206,6 @@ class LogRankComparison(StrictModel):
     strata_columns: tuple[str, ...] = ()
 
 
-class AnimalExclusion(StrictModel):
-    # A source recording ID identifies a whole mapped animal, across all segments.
-    original_id: str = Field(min_length=1)
-    reason: str = Field(min_length=1, pattern=r"\S")
-
-
 class MetadataCSV(StrictModel):
     path: Path
     key_columns: tuple[str, ...] = Field(default=("date", "machine_name", "region_id"), min_length=1)
@@ -202,6 +242,7 @@ class SurvivalRecipe(StrictModel):
     analysis_type: Literal["survival"] = "survival"
     logrank_comparisons: tuple[LogRankComparison, ...] = ()
     exclusions: tuple[AnimalExclusion, ...] = ()
+    decision_resolutions: tuple[DecisionResolution, ...] = ()
     metadata_csv: MetadataCSV | None = None
     metadata_corrections: tuple[MetadataCorrection, ...] = ()
     plot_title: str | None = Field(default=None, min_length=1, max_length=160)
@@ -430,6 +471,8 @@ class AnalysisPreview(StrictModel):
     experiment_id: str
     analysis_type: str
     recipe_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    decision_reviews: tuple[DecisionReview, ...] = ()
+    effective_survival_recipe: SurvivalRecipe | None = None
     approval_required: Literal[True] = True
     ready_to_approve: bool
     sources: tuple[SourceFile, ...]

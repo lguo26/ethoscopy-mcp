@@ -33,6 +33,8 @@ from ethoscopy_mcp.schemas import (
     AnalysisRecipe,
     SleepRecipe,
     NotebookSleepRecipe,
+    SurvivalRecipe,
+    ExclusionDecisionRequest,
 )
 
 
@@ -47,6 +49,25 @@ class EthoscopyService:
     def register_experiment(self, record: ExperimentRecord, expected_revision: int = 0) -> RegisteredExperiment:
         """Create/update confirmed work records, preserving linked analyses."""
         return self.experiments.register(record, expected_revision)
+
+    def record_exclusion_decision(self, experiment_id: str, decision: ExclusionDecisionRequest,
+                                  expected_revision: int) -> RegisteredExperiment:
+        """Record a researcher-confirmed decision; confirmation is asserted, not authenticated."""
+        entry = next((e for e in self.experiments.list().experiments
+                      if e.record.experiment_id == experiment_id), None)
+        if entry is None:
+            raise InvalidExperimentError("Register the experiment before recording decisions")
+        if not entry.record.source_paths:
+            raise InvalidExperimentError("Register source files before recording exclusions")
+        sources = tuple(self.registry.register(p) for p in entry.record.source_paths)
+        ids = set()
+        for source in sources:
+            frame = load_behaviour_pickle(source)
+            ids.update(str(x) for x in _id_values(frame.meta))
+            self.registry.assert_unchanged(source)
+        if any(e.original_id not in ids for e in decision.exclusions):
+            raise InvalidExperimentError("Decision contains animal IDs absent from registered metadata")
+        return self.experiments.record_exclusion(experiment_id, decision, expected_revision, sources)
 
     def list_experiments(self) -> ExperimentRecords:
         return self.experiments.list()
@@ -104,7 +125,9 @@ class EthoscopyService:
             )
 
         combined_meta = pd.concat(metadata_frames, axis=0, copy=False)
+        from ethoscopy_mcp.reviewed_decisions import matching_decisions
         return ExperimentSummary(
+            reviewed_exclusions=matching_decisions(self.experiments, manifest.experiment_id, sources),
             experiment_id=manifest.experiment_id,
             display_name=manifest.display_name,
             ethoscopy_version=_package_version("ethoscopy"),
@@ -136,7 +159,7 @@ class EthoscopyService:
         if isinstance(recipe, SleepRecipe):
             from ethoscopy_mcp.sleep import preview_sleep
             return preview_sleep(self.registry, inspection, recipe)
-        return preview_survival(self.registry, inspection, recipe)
+        return preview_survival(self.registry, inspection, recipe, inspection.reviewed_exclusions)
 
     def run_analysis(
         self,
@@ -146,10 +169,17 @@ class EthoscopyService:
     ) -> AnalysisRunResult:
         """Execute only the recipe whose freshly validated hash was approved."""
 
-        preview = self.preview_analysis(manifest, recipe)
-        result = execute_survival(
-            self.registry, preview, recipe, approved_recipe_hash
-        )
+        # Keep recorded decisions stable during preview + execution. Attach/dashboard
+        # runs afterwards because those operations acquire the registry lock themselves.
+        from contextlib import nullcontext
+        guard = (self.experiments.locked() if isinstance(recipe, SurvivalRecipe)
+                 and self.settings.artifact_root else nullcontext())
+        with guard:
+            preview = self.preview_analysis(manifest, recipe)
+            effective = preview.effective_survival_recipe or recipe
+            result = execute_survival(
+                self.registry, preview, effective, approved_recipe_hash
+            )
         # Validate canonical artifacts before copying, including cached runs.
         verified = self.get_analysis(result.analysis_id)
         source = self.settings.resolve_source(preview.sources[0].path)

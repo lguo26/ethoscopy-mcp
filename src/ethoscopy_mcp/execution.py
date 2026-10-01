@@ -117,6 +117,7 @@ def execute_survival(
             "warnings": [warning.model_dump(mode="json") for warning in preview.warnings],
             "group_outcomes": [outcome.model_dump(mode="json") for outcome in group_outcomes],
             "review_summary": review_summary,
+            "reviewed_exclusion_decisions": [d.model_dump(mode="json") for d in preview.decision_reviews],
             "exclusions": [e.model_dump(mode="json") for e in preview.exclusions],
             "metadata_corrections": [c.model_dump(mode="json") for c in preview.metadata_corrections],
             "artifacts": [artifact.model_dump(mode="json") for artifact in requested_artifacts],
