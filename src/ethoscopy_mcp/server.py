@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
+from functools import wraps
+
 from mcp import types
+from mcp.server.mcpserver.exceptions import ToolError
+
+from ethoscopy_mcp.errors import EthoscopyMCPError
 from mcp.server import MCPServer
 
 from ethoscopy_mcp.config import Settings
@@ -36,6 +41,17 @@ LOCAL_WRITE = types.ToolAnnotations(
 )
 
 
+def _public_service_errors(function):
+    """Expose controlled domain errors; let the SDK mask unexpected failures."""
+    @wraps(function)
+    def wrapped(*args, **kwargs):
+        try:
+            return function(*args, **kwargs)
+        except EthoscopyMCPError as exc:
+            raise ToolError(f"{type(exc).__name__}: {exc}") from exc
+    return wrapped
+
+
 def create_server(
     settings: Settings | None = None,
     service: EthoscopyService | None = None,
@@ -63,6 +79,7 @@ def create_server(
     )
 
     @server.tool(annotations=LOCAL_WRITE, structured_output=True)
+    @_public_service_errors
     def register_experiment(record: ExperimentRecord, expected_revision: int = 0) -> RegisteredExperiment:
         """Save a local work record; 0 creates, current revision updates.
 
@@ -74,6 +91,7 @@ def create_server(
         return get_service().register_experiment(record, expected_revision)
 
     @server.tool(annotations=LOCAL_WRITE, structured_output=True)
+    @_public_service_errors
     def record_exclusion_decision(experiment_id: str, decision: ExclusionDecisionRequest,
                                   expected_revision: int) -> RegisteredExperiment:
         """Append a versioned, researcher-confirmed survival exclusion decision.
@@ -88,16 +106,19 @@ def create_server(
         return get_service().record_exclusion_decision(experiment_id, decision, expected_revision)
 
     @server.tool(annotations=READ_ONLY, structured_output=True)
+    @_public_service_errors
     def list_experiments() -> ExperimentRecords:
         """List local work records, revisions, and linked verified-run references."""
         return get_service().list_experiments()
 
     @server.tool(annotations=LOCAL_WRITE, structured_output=True)
+    @_public_service_errors
     def link_experiment_analysis(analysis_id: str) -> RegisteredExperiment:
         """Verify an existing run, link to its registered experiment, rebuild dashboard."""
         return get_service().link_experiment_analysis(analysis_id)
 
     @server.tool(annotations=LOCAL_WRITE, structured_output=True)
+    @_public_service_errors
     def build_experiment_dashboard() -> DashboardResult:
         """Build offline HTML with filters, plots and a condition tree.
 
@@ -107,12 +128,14 @@ def create_server(
         return get_service().build_experiment_dashboard()
 
     @server.tool(annotations=READ_ONLY, structured_output=True)
+    @_public_service_errors
     def inspect_experiment(manifest: ExperimentManifest) -> ExperimentSummary:
         """Inspect trusted pickle sources and return compact metadata summaries."""
 
         return get_service().inspect_experiment(manifest)
 
     @server.tool(annotations=READ_ONLY, structured_output=True)
+    @_public_service_errors
     def preview_analysis(
         manifest: ExperimentManifest, recipe: AnalysisRecipe
     ) -> AnalysisPreview:
@@ -127,6 +150,7 @@ def create_server(
         return get_service().preview_analysis(manifest, recipe)
 
     @server.tool(annotations=LOCAL_WRITE, structured_output=True)
+    @_public_service_errors
     def run_analysis(
         manifest: ExperimentManifest,
         recipe: AnalysisRecipe,
@@ -137,6 +161,7 @@ def create_server(
         return get_service().run_analysis(manifest, recipe, approved_recipe_hash)
 
     @server.tool(annotations=LOCAL_WRITE, structured_output=True)
+    @_public_service_errors
     def run_kaplan_meier(
         manifest: ExperimentManifest,
         recipe: SurvivalRecipe,
@@ -159,12 +184,14 @@ def create_server(
         return get_service().run_analysis(manifest, recipe, approved_recipe_hash)
 
     @server.tool(annotations=READ_ONLY, structured_output=True)
+    @_public_service_errors
     def get_analysis(analysis_id: str) -> AnalysisRunResult:
         """Return a completed run after verifying every artifact hash."""
 
         return get_service().get_analysis(analysis_id)
 
     @server.tool(annotations=READ_ONLY, structured_output=True)
+    @_public_service_errors
     def get_artifact(analysis_id: str, artifact_id: str) -> ArtifactReference:
         """Return verified local artifact metadata, not the artifact contents."""
 

@@ -97,3 +97,17 @@ See [Notebook sleep workflow](NOTEBOOK_SLEEP.md).
 ## record_exclusion_decision
 
 Save a researcher-confirmed exclusion decision against registered source fingerprints using the current experiment revision. Inspection and survival preview surface matching decisions; recipe `decision_resolutions` must explicitly apply or override applicable decisions. See [contract and examples](REVIEWED_EXCLUSIONS.md).
+
+## User-facing validation errors
+
+Known service failures are returned as MCP tool errors with their exception type
+and explanation. For example, inspecting a source outside the configured roots
+returns `UnsafePathError: Source is outside the configured trusted roots`.
+Configuration, unsupported-source, changed-source and invalid-experiment errors
+are exposed in the same way. Unexpected exceptions retain the MCP framework's
+masked error message; their details belong in server logs.
+
+This does not expand filesystem access. Use an existing allowed data directory,
+or explicitly configure `ETHOSCOPY_DATA_ROOTS` and restart the service if access
+to another directory is intended. The adapter never automatically adds directories
+or moves data to bypass a failed path check.
