@@ -36,7 +36,7 @@ immutability, cohort identity, time units and generated artifacts.
 - [x] Continuous integration for Python 3.12–3.14
 - [x] Initial repository data and credential audit
 - [x] License review and full license file
-- [x] Document Ethoscopy 2.4.0 requirements and reproducibility limits
+- [x] Document Ethoscopy 3.0.0 requirements and reproducibility limits
 - [x] Automatic verified exports beside the first source pickle
 - [ ] Change the GitHub repository visibility to public
 - [ ] Enable GitHub private vulnerability reporting
@@ -74,7 +74,7 @@ without directly importing the Python service.
 - Add compact, documented error codes for configuration, unsafe paths, invalid
   experiments, changed sources, approval mismatch, and artifact verification.
 - Ensure MCP errors do not expose arbitrary local paths or raw data.
-- Maintain compatibility tests for the required Ethoscopy 2.4.0 API; reject
+- Maintain compatibility tests for the required Ethoscopy 3.0.0 API; reject
   older loaded engines and require a server restart after upgrading.
 
 Acceptance: client applications can handle expected failures without parsing

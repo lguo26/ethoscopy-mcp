@@ -7,6 +7,7 @@ from importlib import metadata as importlib_metadata
 import math
 from typing import Any, Iterable
 
+import ethoscopy as etho
 import pandas as pd
 
 from ethoscopy_mcp.config import Settings
@@ -42,6 +43,8 @@ class EthoscopyService:
     """Inspect trusted Ethoscopy sources without changing them."""
 
     def __init__(self, settings: Settings):
+        # This configures future raw annotation; saved pickle labels are unchanged.
+        etho.set_sleep_rule("k")
         self.settings = settings
         self.registry = SourceRegistry(settings)
         self.experiments = ExperimentStore(settings)

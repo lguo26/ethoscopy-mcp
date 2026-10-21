@@ -1,5 +1,6 @@
 """MCP integration for reproducible Ethoscopy analysis."""
 
+from ethoscopy_mcp.death_alignment import align_to_death
 from ethoscopy_mcp.config import Settings
 from ethoscopy_mcp.schemas import (
     AnalysisPreview,
@@ -17,6 +18,7 @@ __version__ = "0.1.0a1"
 
 __all__ = [
     "EthoscopyService",
+    "align_to_death",
     "AnalysisPreview",
     "AnalysisRunResult",
     "ExperimentManifest",

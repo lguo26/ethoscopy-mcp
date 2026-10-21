@@ -36,9 +36,9 @@ def preview_survival(
             "Survival time_window_hours must be at least 24 with the current "
             "adapter's fixed Ethoscopy resolution of 24."
         )
-    if etho.__version__ != "2.4.0":
+    if etho.__version__ != "3.0.0":
         raise InvalidExperimentError(
-            "Survival analysis requires loaded Ethoscopy 2.4.0; "
+            "Survival analysis requires loaded Ethoscopy 3.0.0; "
             "restart ethoscopy-mcp after upgrading its environment."
         )
     if recipe.experiment_id != inspection.experiment_id:
@@ -419,7 +419,7 @@ def _recipe_hash(
     auxiliary_hashes: tuple[str, ...] = (),
 ) -> str:
     payload = {
-        "survival_engine": "notebook-2.4-inputs-v3",
+        "survival_engine": "notebook-3.0-inputs-v4",
         "auxiliary_hashes": auxiliary_hashes,
         "ethoscopy_version": etho.__version__,
         "recipe": recipe.model_dump(mode="json"),

@@ -3,7 +3,7 @@
 Use `analysis_type: "survival"` with the same `preview_analysis` and
 `run_analysis` tools as sleep, or the dedicated `run_kaplan_meier` tool.
 Python callers use `SurvivalRecipe` and
-`EthoscopyService`. Default runs call Ethoscopy 2.4.0's public `km_death_table` and
+`EthoscopyService`. Default runs call Ethoscopy 3.0.0's public `km_death_table` and
 `km_survival_plot` functions through the shared service. Reviewed runs use the
 same default estimates, then plot explicitly reviewed endpoints using Ethoscopy's
 Kaplan–Meier helper.
@@ -59,7 +59,7 @@ movement column can trigger death. Set `second_movement_column` to `null` to
 use only the primary column, or `zero_run_hours` to `null` to disable that rule.
 
 No `min_coverage` override is applied. Incomplete final windows are evaluated
-using the library defaults, matching the Ethoscopy 2.4 notebook behavior.
+using the library defaults, matching the Ethoscopy 3.0 notebook behavior.
 The adapter retains the library's resolution of 24 window starts per window;
 `time_window_hours` below 24 is rejected during preview.
 Missing tracking values and short or interrupted recordings should therefore
@@ -216,14 +216,14 @@ Example request to an assistant:
 The workflow is inspect → preview → exact current hash → run → retrieve.
 Source, mapping, recipe and survival-engine changes invalidate approval hashes.
 
-## Upgrading to Ethoscopy 2.4
+## Upgrading to Ethoscopy 3.0
 
 Restart the MCP server after upgrading so it loads the updated implementation.
-The running process must use Ethoscopy 2.4.0. Update older recipes that set
+The running process must use Ethoscopy 3.0.0. Update older recipes that set
 `cumulative: true` to `false`, then generate and review a fresh preview.
 
 Survival approval hashes include the loaded engine version and adapter revision,
-so older cached results cannot substitute for a new 2.4 analysis. Previously
+so older cached results cannot substitute for a new 3.0 analysis. Previously
 saved results remain available for retrieval. The detection defaults and
 elapsed-time interpretation are documented above under Recipe settings and
 Time and censoring.

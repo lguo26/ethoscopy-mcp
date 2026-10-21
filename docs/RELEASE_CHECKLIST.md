@@ -104,3 +104,11 @@ confounding still requires review. Fresh sleep plots can vary slightly because
 of random resampling and point placement.
 The service does not package a complete software environment or generate
 narrative reports. See the workflow guides for scientific assumptions.
+
+## Local Ethoscopy 3.0 migration (21 October 2026)
+
+The earlier 2.4 checks above describe the previous release. The current dependency
+and survival version guard require 3.0.0; the survival adapter hash is revised to
+prevent reuse of 2.4 execution results. Service startup selects rule `k` for future
+annotation without modifying saved labels. The integration now exports the Python
+`align_to_death` helper; see `DEATH_ALIGNMENT.md`.

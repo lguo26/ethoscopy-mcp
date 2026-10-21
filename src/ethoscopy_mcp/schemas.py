@@ -187,7 +187,7 @@ class DeathDetectionSettings(StrictModel):
     time_window_hours: float = Field(default=24, gt=0)
     proportion_immobile: float = Field(default=0.01, ge=0, le=1)
     zero_run_hours: float | None = Field(default=12, gt=0)
-    # Ethoscopy 2.4 reports elapsed time from each subject's first sample.
+    # Ethoscopy 3.0 reports elapsed time from each subject's first sample.
     cumulative: Literal[False] = False
 
 

@@ -56,7 +56,7 @@ documented analyses with local data from a trusted source. See the
 ## Prerequisites
 
 - **Python 3.12 or newer**, with an isolated virtual environment. Installing
-  this package installs its declared dependencies, including Ethoscopy (`==2.4.0`)
+  this package installs its declared dependencies, including Ethoscopy (`==3.0.0`)
   and MCP (`>=2,<3`).
 - **An AI client that can start local MCP tools**, such as Codex or Claude
   Desktop, or Python to run analyses directly.
@@ -246,3 +246,15 @@ AI-assistance attribution. Contributions are welcome under the process in
 `GPL-3.0-only`. Third-party packages remain under their own licenses. Private
 research datasets and generated experiment artifacts are not distributed by
 this repository and are not licensed by this software license.
+
+## Ethoscopy 3.0 and death alignment
+
+The MCP environment requires Ethoscopy 3.0.0. Service initialization selects
+`etho.set_sleep_rule("k")` for future raw sleep annotation. Existing sleep tools
+summarize saved labels; this setting does not rescore an older pickle.
+Survival still uses the configured movement detector, independently of sleep.
+Restart a previously running MCP process after upgrading its environment.
+
+The public Python helper `from ethoscopy_mcp import align_to_death` accepts MCP
+survival endpoints and preserves stored sleep annotations. See
+[death-alignment usage and time-coordinate requirements](docs/DEATH_ALIGNMENT.md).

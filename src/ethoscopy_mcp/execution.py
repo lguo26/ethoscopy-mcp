@@ -285,7 +285,7 @@ def _run_recipe(
         "prop_immobile": death.proportion_immobile,
         "zero_run_hours": death.zero_run_hours,
     }
-    # Use the same 2.4 defaults as the notebook: no min_coverage override.
+    # Preserve the established detector defaults: no min_coverage override.
     subject_columns = ["machine_name", "region_id"]
     table = working.km_death_table(
         **death_settings,
