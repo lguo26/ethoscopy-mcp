@@ -74,7 +74,20 @@ def create_server(
         instructions=(
             "Inspect trusted Ethoscopy files, preview survival or sleep recipes, and execute "
             "only an exactly approved recipe hash. Source files are immutable. Tools "
-            "return summaries and artifact references, never raw behavioural rows."
+            "return summaries and artifact references, never raw behavioural rows. "
+            "Interpret 'run survival analysis' as inspect/preview then run_kaplan_meier "
+            "using established project settings. Verify the intended implementation/version "
+            "when the user specifies a custom detector; matching method names are insufficient. "
+            "Request primary CSV km_death_table, "
+            "individuals CSV for deaths and censoring, and Kaplan-Meier plots/tables. "
+            "For 'run death alignment analysis', reuse verified compatible MCP survival "
+            "outputs or run survival first, then use the Python package helper "
+            "ethoscopy_mcp.align_to_death with exported km_death_table times and "
+            "recording bounds/censoring from individuals. Death alignment is not a "
+            "standalone server tool. Downstream binning, heatmaps and same-experiment "
+            "control matching belong in analysis scripts. Preserve stored k annotations; "
+            "set_sleep_rule('k') does not rescore saved data. Do not assign deaths to "
+            "censored controls or infer unconfirmed timing/animal identity."
         ),
     )
 
@@ -172,6 +185,9 @@ def create_server(
         Preview with preview_analysis first. Request CSV datasets individuals for
         all event/censor endpoints and kaplan_meier for curves, confidence
         intervals and risk counts; request primary PNG/SVG for survival plots.
+        Request a primary CSV named km_death_table for explicit death-only
+        estimates from Ethoscopy km_death_table(); retain individuals separately
+        for censoring and the recording-time bounds needed for death alignment.
         Configure logrank_comparisons and a statistics CSV for two-sided
         log-rank tests with optional strata and Holm correction.
         Use exclusions with original_id and reason to remove whole mapped animals.

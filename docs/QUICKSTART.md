@@ -1,5 +1,7 @@
 # Quick Start
 
+For short requests such as “run survival analysis” or “run death alignment analysis”, see [analysis requests](ANALYSIS_REQUESTS.md).
+
 This pre-alpha package supports survival analysis, reviewed-endpoint sleep
 summaries, and notebook-style sleep plots and comparisons. Start with a synthetic
 example or connect an MCP client to trusted local Ethoscopy data.

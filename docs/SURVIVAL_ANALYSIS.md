@@ -1,5 +1,7 @@
 # Survival analysis
 
+For short requests such as “run survival analysis” or “run death alignment analysis”, see [analysis requests](ANALYSIS_REQUESTS.md).
+
 Use `analysis_type: "survival"` with the same `preview_analysis` and
 `run_analysis` tools as sleep, or the dedicated `run_kaplan_meier` tool.
 Python callers use `SurvivalRecipe` and
@@ -266,3 +268,15 @@ the event indicators: a censored time is not a detected death time. Existing
 The auxiliary files are trusted-root validated, hashed into the approval and
 recorded in provenance. Changing any review reason or reference invalidates
 approval. Restart/reconnect the MCP process after updating to load these fields.
+
+## Explicit detector backend
+
+`death_detection.backend` selects `ethoscopy_3` (compatibility default) or `user_km_76e23fd` (the user-authored implementation selected for the current S. aureus project). The choice is included in the recipe hash and provenance. Never infer detector equivalence from method names.
+
+The user backend vendors lguo26's exact KM methods from commit `76e23fdd6c904eefc856ab5c7103a1a9bda0ba43`, with attribution in `user_km_methods.py`. It uses `_build_km_survival_table()` for both `km_death_table()` and `km_survival_plot()`, full endpoint exports and review diagnostics. It does not use installed `survival_table()` to calculate endpoints. Its sliding windows are half-open, require 75% expected ten-second rows and propagate NaN means. Its separate zero-run rule is unchanged. This is not a 100%-coverage variant. Curve CSVs use the same KM estimator as the user plot.
+
+The adapter requires continuous ten-second observations and one recording ID per canonical animal; it rejects gaps, cadence changes and ambiguous merges. Transfer/restart datasets require additional validation before this backend is supported. The installed backend remains available to reproduce earlier recipes. In either backend, estimated deaths are not independently confirmed biological deaths.
+
+```json
+{"death_detection": {"backend": "user_km_76e23fd", "movement_column": "moving", "second_movement_column": "walk", "time_window_hours": 24, "proportion_immobile": 0.01, "zero_run_hours": 12, "cumulative": false}}
+```

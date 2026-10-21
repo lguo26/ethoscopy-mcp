@@ -4,14 +4,33 @@ The Python helper `ethoscopy_mcp.align_to_death` aligns observations to estimate
 deaths from an MCP survival run. It is part of this integration package, not an
 upstream Ethoscopy method or a standalone MCP tool.
 
+For “run death alignment analysis”, follow [analysis requests](ANALYSIS_REQUESTS.md).
+First request a survival `primary` CSV named `km_death_table`, alongside the
+`individuals` CSV. Verify the MCP run's artifact hashes before loading them.
+
 ```python
 import ethoscopy as etho
 import pandas as pd
+import numpy as np
 from ethoscopy_mcp import align_to_death
 
 etho.set_sleep_rule("k")
 data = pd.read_pickle("Sa_1007_1.pkl")
 events = pd.read_csv("survival_individuals.csv")  # MCP export
+deaths = pd.read_csv("km_death_table.csv")        # MCP primary CSV
+assert deaths.id.is_unique
+assert set(deaths.id) == set(events.loc[events.E.eq(1), "id"])
+times = deaths.set_index("id")["T"]
+mask = events.E.eq(1)
+np.testing.assert_allclose(
+    events.loc[mask, "T"], events.loc[mask, "id"].map(times),
+    rtol=0, atol=1e-9,
+)
+events.loc[mask, "T"] = events.loc[mask, "id"].map(times)
+# For these ten-second recordings, remove CSV floating-point noise at boundaries.
+events["anchor_seconds"] = (
+    3600 * (events.first_sample_aligned_hours + events["T"])
+).round(6)
 aligned = align_to_death(data, events, window_hours=(-48, 0))
 ```
 
@@ -39,6 +58,12 @@ observations, or match PBS controls. It preserves stored k annotations; calling
 `set_sleep_rule("k")` does not convert a classic-scored pickle. For PBS comparisons,
 use each case's anchor to select observed/alive controls from the same experiment,
 then apply the tracking-coverage checks used by the cohort analysis scripts.
+
+The endpoint engine is recipe-selected: `user_km_76e23fd` uses the user
+`_build_km_survival_table()`; `ethoscopy_3` uses installed `survival_table()`. Scripts can consume MCP outputs without calling it
+directly. The explicit death-only table supplies death times; full endpoints
+supply recording bounds and censoring. Reviewed endpoint overrides must be
+consistent across both exports; do not mix artifacts from different runs.
 
 Tests cover MCP time-offset conversion, window boundaries, censoring, stored
 sleep-label preservation, source immutability, and invalid inputs. The real-cohort

@@ -21,6 +21,9 @@ data. An analysis **recipe** records the settings and outputs you request.
 | [Sleep summaries](docs/SLEEP_ANALYSIS.md) | `sleep` | Sleep profiles, per-fly summaries, and group summaries using reviewed death or censoring times. |
 | [Sleep plots and deprivation analysis](docs/NOTEBOOK_SLEEP.md) | `sleep_notebook` | Heatmaps, sleep time courses, rebound comparisons, optional Mann–Whitney tests, and sleep-deprivation quality checks. |
 | [Survival analysis](docs/SURVIVAL_ANALYSIS.md) | `survival` | Death or censoring times for every animal, Kaplan–Meier plots and curve tables, confidence intervals, and numbers still at risk. Optional log-rank tests can account for temperature or other groups and apply Holm correction. |
+| [Death alignment](docs/DEATH_ALIGNMENT.md) | MCP survival outputs + Python `align_to_death()` helper | Observations aligned to estimated death, preserving stored sleep annotations and excluding censored animals. These observations support downstream hourly curves, heatmaps and matched-control comparisons; those summaries are produced by analysis scripts, not by the helper. No standalone MCP server tool or recipe is exposed yet. |
+
+You can ask **“Run survival analysis on [folder/pickle]”** or **“Run death alignment analysis on [folder/pickle]”**. See [analysis requests](docs/ANALYSIS_REQUESTS.md) for how these requests map to the tools and saved project settings.
 
 ## Reproducibility
 

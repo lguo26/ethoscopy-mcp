@@ -98,6 +98,12 @@ def preview_survival(
         warnings.append(
             ValidationWarning(code="scientific_context", message=message)
         )
+    if recipe.death_detection.backend == "user_km_76e23fd":
+        warnings.append(ValidationWarning(code="user_km_backend", message=(
+            "Pinned lguo26 KM implementation 76e23fd: 75% of expected ten-second samples, "
+            "half-open windows and NaN-propagating means; not the installed survival_table detector. "
+            "Currently requires one continuous ten-second recording per canonical animal."
+        )))
     warnings.append(
         ValidationWarning(
             code="algorithmic_death_estimate",

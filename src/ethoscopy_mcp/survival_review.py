@@ -48,10 +48,11 @@ def read_endpoints(path: Path, mapping: pd.DataFrame, *, reviewed: bool) -> pd.D
     return data
 
 
-def review_survival(working, recipe, settings, death_table, figure):
+def review_survival(working, recipe, settings, death_table, figure, backend=None):
     from ethoscopy.survival import _segment_bounds, sliding_window_death, zero_run_death
 
-    survival = working.survival_table(**settings, subject_cols=["machine_name", "region_id"])
+    survival = (backend.full_table(**settings) if backend else
+                working.survival_table(**settings, subject_cols=["machine_name", "region_id"]))
     metadata = working.meta
     id_keys = {str(i): (str(r.machine_name), roi_key(r.region_id)) for i, r in metadata.iterrows()}
     observations = {}
@@ -76,13 +77,14 @@ def review_survival(working, recipe, settings, death_table, figure):
                 restart_moving = int(np.sum(after > 0))
             for column in columns:
                 movement = values[column][start:end]
-                window = sliding_window_death(ts, movement, death.time_window_hours * 3600,
-                    int(death.time_window_hours * 3600 / 24), death.proportion_immobile)
+                window = (backend.window_candidate(ts, movement, death.time_window_hours, 24, death.proportion_immobile)
+                    if backend else sliding_window_death(ts, movement, death.time_window_hours * 3600,
+                    int(death.time_window_hours * 3600 / 24), death.proportion_immobile))
                 zero = zero_run_death(ts, movement, death.zero_run_hours * 3600) if death.zero_run_hours else None
                 for method, candidate in (("window", window), ("zero_run", zero)):
                     if candidate is None:
                         continue
-                    mask = (ts >= candidate) & (ts <= candidate + death.time_window_hours * 3600)
+                    mask = (ts >= candidate) & ((ts < candidate + death.time_window_hours * 3600) if backend else (ts <= candidate + death.time_window_hours * 3600))
                     candidates.append(dict(canonical_machine=key[0], roi=key[1], segment=segment,
                         column=column, method=method, elapsed_hours=(candidate-subject.start_time)/3600,
                         aligned_hours=candidate/3600, window_samples=int(mask.sum()),
@@ -128,11 +130,11 @@ def review_survival(working, recipe, settings, death_table, figure):
         death_table = report.loc[report.E == 1, ['id', 'treatment', 'T']].copy()
         for column, value in recipe.cohort_filters.items():
             death_table[column] = value
-        figure = plot_reviewed(report, recipe, figure)
+        figure = plot_reviewed(report, recipe, figure, backend=backend)
     return death_table, figure, reports
 
 
-def plot_reviewed(report, recipe, original):
+def plot_reviewed(report, recipe, original, backend=None):
     import matplotlib.pyplot as plt
     from ethoscopy.survival import kaplan_meier
 
@@ -142,7 +144,7 @@ def plot_reviewed(report, recipe, original):
         group = report.loc[report.treatment == level.label]
         if group.empty:
             continue
-        km = kaplan_meier(group['T']/24, group.E)
+        km = (backend.kaplan_meier_estimate(group['T']/24, group.E) if backend else kaplan_meier(group['T']/24, group.E))
         times = np.r_[0, km.time]; survival = np.r_[1, km.survival]
         line, = ax.step(times, survival, where='post', label=f'{level.label} (n={len(group)})')
         ax.fill_between(times, np.r_[1, km.ci_lower], np.r_[1, km.ci_upper],

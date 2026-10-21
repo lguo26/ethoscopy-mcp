@@ -113,6 +113,8 @@ def execute_survival(
             "auxiliary_sources": [s.model_dump(mode="json") for s in preview.auxiliary_sources],
             "source_hashes_verified": True,
             "ethoscopy_version": etho.__version__,
+            "survival_backend": (recipe.death_detection.backend if isinstance(recipe, SurvivalRecipe) else None),
+            "user_km_source_commit": ("76e23fdd6c904eefc856ab5c7103a1a9bda0ba43" if isinstance(recipe, SurvivalRecipe) and recipe.death_detection.backend == "user_km_76e23fd" else None),
             "scipy_version": _package_version("scipy"),
             "warnings": [warning.model_dump(mode="json") for warning in preview.warnings],
             "group_outcomes": [outcome.model_dump(mode="json") for outcome in group_outcomes],
@@ -285,24 +287,26 @@ def _run_recipe(
         "prop_immobile": death.proportion_immobile,
         "zero_run_hours": death.zero_run_hours,
     }
-    # Preserve the established detector defaults: no min_coverage override.
+    backend = None
     subject_columns = ["machine_name", "region_id"]
-    table = working.km_death_table(
-        **death_settings,
-        subject_cols=subject_columns,
-        meta_cols=["species"],
-        time_unit="hours",
-    ).rename(columns={"species": "treatment"})
-    plot_api_settings = {
-        "subject_cols": subject_columns,
-        "censor_marks": True,
-        "grids": False,
-    }
+    if death.backend == "user_km_76e23fd":
+        from ethoscopy_mcp.user_km import UserKMBackend
+        backend = UserKMBackend(working)
+        table = backend.death_table(**death_settings)
+        plotter = backend
+        plot_api_settings = {"censoring_marks": True, "grid": False}
+    else:
+        table = working.km_death_table(
+            **death_settings, subject_cols=subject_columns,
+            meta_cols=["species"], time_unit="hours",
+        ).rename(columns={"species": "treatment"})
+        plotter = working
+        plot_api_settings = {"subject_cols": subject_columns, "censor_marks": True, "grids": False}
     for column, value in recipe.cohort_filters.items():
         table[column] = value
 
     labels = [level.label for level in recipe.group.levels]
-    figure = working.km_survival_plot(
+    figure = plotter.km_survival_plot(
         **death_settings,
         facet_col="species",
         facet_arg=labels,
@@ -315,7 +319,7 @@ def _run_recipe(
     )
     if recipe.review_diagnostics or recipe.reviewed_endpoints_path or recipe.reference_endpoints_path:
         from ethoscopy_mcp.survival_review import review_survival
-        table, figure, reports = review_survival(working, recipe, death_settings, table, figure)
+        table, figure, reports = review_survival(working, recipe, death_settings, table, figure, backend=backend)
         table.attrs["review_reports"] = reports
     # Review overrides may replace the figure; apply the same readable title last.
     figure.axes[0].set_title(_plot_title(working, recipe))
@@ -332,8 +336,8 @@ def _run_recipe(
         if "review_reports" in table.attrs:
             individuals = table.attrs["review_reports"]["survival_review.csv"].copy()
         else:
-            individuals = working.survival_table(
-                **death_settings, subject_cols=subject_columns
+            individuals = (backend.full_table(**death_settings) if backend else
+                working.survival_table(**death_settings, subject_cols=subject_columns)
             ).reset_index(drop=True)
             individuals["treatment"] = individuals["id"].map(working.meta["species"])
         # Keep the same selected endpoints for both curves and endpoint exports,
@@ -351,7 +355,7 @@ def _run_recipe(
             group = individuals.loc[individuals.treatment == label]
             if group.empty:
                 continue
-            curve = kaplan_meier(group["T"], group["E"]).copy()
+            curve = (backend.kaplan_meier_estimate(group["T"], group["E"]) if backend else kaplan_meier(group["T"], group["E"])).copy()
             curve.insert(0, "treatment", label)
             curve["time_unit"] = "hours"
             curves.append(curve)

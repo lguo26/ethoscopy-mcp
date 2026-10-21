@@ -1,5 +1,7 @@
 # MCP tool design
 
+For short requests such as “run survival analysis” or “run death alignment analysis”, see [analysis requests](ANALYSIS_REQUESTS.md).
+
 ## Discovery
 
 ### `inspect_experiment(manifest)`
@@ -41,7 +43,9 @@ Choose CSV outputs by dataset:
 - `individuals`: every animal's death or censoring time and event indicator.
 - `kaplan_meier`: survival estimates, confidence intervals, and numbers at risk.
 - `statistics`: requested log-rank comparisons with Holm-adjusted p-values.
-- `primary`: the original death-only table, kept for compatibility.
+- `primary`: the death-only output of `km_death_table()`; request it as
+  `km_death_table.csv` for explicit death-alignment anchors. It does not contain
+  censored animals; request `individuals` as well.
 
 Plots use `primary` with PNG or SVG format. Statistical tests require named
 `logrank_comparisons`; each can specify metadata filters and strata such as

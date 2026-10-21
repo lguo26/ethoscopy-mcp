@@ -182,6 +182,7 @@ class BaselineAlignment(StrictModel):
 
 
 class DeathDetectionSettings(StrictModel):
+    backend: Literal["ethoscopy_3", "user_km_76e23fd"] = "ethoscopy_3"
     movement_column: str = "moving"
     second_movement_column: str | None = "walk"
     time_window_hours: float = Field(default=24, gt=0)
