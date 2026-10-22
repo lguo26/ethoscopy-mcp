@@ -98,7 +98,7 @@ def preview_survival(
         warnings.append(
             ValidationWarning(code="scientific_context", message=message)
         )
-    if recipe.death_detection.backend == "user_km_76e23fd":
+    if recipe.death_detection.backend in ("km_surival", "user_km_76e23fd"):
         warnings.append(ValidationWarning(code="user_km_backend", message=(
             "Pinned lguo26 KM implementation 76e23fd: 75% of expected ten-second samples, "
             "half-open windows and NaN-propagating means; not the installed survival_table detector. "
@@ -261,7 +261,8 @@ def preview_survival(
                    for name in ("survival_review.csv", "survival_candidates.csv"))
              if recipe.review_diagnostics or recipe.reviewed_endpoints_path or recipe.reference_endpoints_path else ())
         + tuple(ArtifactPreview(artifact_type="table", format="csv", name=name)
-                for name, enabled in (("exclusions.csv", bool(exclusions)),
+                for name, enabled in (("early_deaths_review.csv", True),
+                                      ("exclusions.csv", bool(exclusions)),
                                       ("metadata_corrections.csv", bool(recipe.metadata_corrections))) if enabled),
         # Automatic audit tables cannot be omitted from an exclusion/correction run.
         assumptions=recipe.assumptions,

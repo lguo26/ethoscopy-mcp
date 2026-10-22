@@ -92,6 +92,9 @@ def execute_survival(
                     "original_deaths_with_post_restart_movement": int(evidence.warning.ne("").sum()),
                 }
             extra = []
+            review_summary["early_deaths_0_to_1_hours"] = len(
+                table.attrs.get("audit_reports", {}).get("early_deaths_review.csv", ())
+            )
             for filename, report in {**reports, **table.attrs.get("audit_reports", {})}.items():
                 if (temporary / filename).exists():
                     raise InvalidExperimentError(f"Reserved review artifact filename: {filename}")
@@ -114,7 +117,7 @@ def execute_survival(
             "source_hashes_verified": True,
             "ethoscopy_version": etho.__version__,
             "survival_backend": (recipe.death_detection.backend if isinstance(recipe, SurvivalRecipe) else None),
-            "user_km_source_commit": ("76e23fdd6c904eefc856ab5c7103a1a9bda0ba43" if isinstance(recipe, SurvivalRecipe) and recipe.death_detection.backend == "user_km_76e23fd" else None),
+            "user_km_source_commit": ("76e23fdd6c904eefc856ab5c7103a1a9bda0ba43" if isinstance(recipe, SurvivalRecipe) and recipe.death_detection.backend in ("km_surival", "user_km_76e23fd") else None),
             "scipy_version": _package_version("scipy"),
             "warnings": [warning.model_dump(mode="json") for warning in preview.warnings],
             "group_outcomes": [outcome.model_dump(mode="json") for outcome in group_outcomes],
@@ -289,7 +292,7 @@ def _run_recipe(
     }
     backend = None
     subject_columns = ["machine_name", "region_id"]
-    if death.backend == "user_km_76e23fd":
+    if death.backend in ("km_surival", "user_km_76e23fd"):
         from ethoscopy_mcp.user_km import UserKMBackend
         backend = UserKMBackend(working)
         table = backend.death_table(**death_settings)
@@ -329,6 +332,13 @@ def _run_recipe(
         audits["exclusions.csv"] = exclusion_table
     if recipe.metadata_corrections:
         audits["metadata_corrections.csv"] = corrections
+    # This is a review aid only: keep flagged deaths in every survival output.
+    early = table.loc[table["T"].between(0, 1, inclusive="both")].copy()
+    early["early_death_review"] = True
+    early["review_reason"] = "Detected death at 0–1 elapsed hours; review before any exclusion."
+    early["time_unit"] = "hours"
+    early["time_basis"] = "elapsed_from_first_retained_sample"
+    audits["early_deaths_review.csv"] = early
     table.attrs["audit_reports"] = audits
     if any(r.dataset in {"individuals", "kaplan_meier", "statistics"} for r in recipe.output_requests):
         from ethoscopy.survival import kaplan_meier
@@ -350,6 +360,8 @@ def _run_recipe(
                 individuals[column] = individuals["id"].map(working.meta[column])
         individuals["time_unit"] = "hours"
         individuals["time_basis"] = "elapsed_from_first_retained_sample"
+        from ethoscopy_mcp.survival_review import early_death_mask
+        individuals["early_death_review"] = early_death_mask(individuals["T"], individuals.E)
         curves = []
         for label in labels:
             group = individuals.loc[individuals.treatment == label]

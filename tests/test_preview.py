@@ -55,7 +55,7 @@ class SurvivalPreviewTests(unittest.TestCase):
             self.assertEqual(result.run_directory, retrieved.run_directory)
             self.assertTrue(retrieved.reused_existing)
             self.assertEqual(retrieved_artifact, result.artifacts[0])
-            self.assertEqual(len(result.artifacts), 4)
+            self.assertEqual(len(result.artifacts), 5)
             self.assertTrue(result.provenance_path.is_file())
             self.assertEqual(result.export_directory.parent, first.parent)
             self.assertEqual(result.export_directory, repeated.export_directory)
@@ -129,7 +129,7 @@ class SurvivalPreviewTests(unittest.TestCase):
             self.assertEqual(cohorts["S. aureus"].individuals_with_data, 2)
             self.assertEqual(cohorts["S. aureus"].data_segments, 4)
             self.assertEqual(len(preview.recipe_hash), 64)
-            self.assertEqual(len(preview.expected_artifacts), 3)
+            self.assertEqual(len(preview.expected_artifacts), 4)
             self.assertEqual(preview.transformations[0].operation, "baseline_alignment")
             self.assertTrue(preview.baseline_alignment.apply_once)
             for path, digest in hashes_before.items():

@@ -196,6 +196,9 @@ def create_server(
         Exclusions and corrections automatically export audit CSVs. Set plot_title
         for a custom readable title; group labels control the legend.
         Times in CSV outputs are hours from each subject's first retained sample.
+        Select km_surival for the pinned KM detector; user_km_76e23fd is its
+        compatible legacy name. Detected deaths at 0–1 elapsed hours are flagged
+        in early_deaths_review.csv, never automatically excluded.
         """
         return get_service().run_analysis(manifest, recipe, approved_recipe_hash)
 

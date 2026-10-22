@@ -7,6 +7,11 @@ import pandas as pd
 from ethoscopy_mcp.errors import InvalidExperimentError
 
 
+def early_death_mask(times, events):
+    """Flag observed deaths at 0–1 elapsed hours, inclusively; never exclude."""
+    return events.eq(1) & times.between(0, 1, inclusive="both")
+
+
 def roi_key(value):
     try:
         number = float(value)
@@ -120,6 +125,8 @@ def review_survival(working, recipe, settings, death_table, figure, backend=None
         report['original_minus_reference_hours'] = report.original_T - report.reference_T
         report['selected_minus_reference_hours'] = report['T'] - report.reference_T
         report['selected_event_matches_reference'] = report.E.eq(report.reference_E).where(report.reference_E.notna())
+    report['early_death_review'] = early_death_mask(report['T'], report.E)
+    report['original_early_death_review'] = early_death_mask(report.original_T, report.original_E)
     reports = {"survival_review.csv": report,
                "survival_candidates.csv": pd.DataFrame(candidates, columns=[
                    'canonical_machine', 'roi', 'segment', 'column', 'method', 'elapsed_hours',

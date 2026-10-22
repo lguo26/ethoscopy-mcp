@@ -12,6 +12,13 @@ from test_preview import _write_transfer_fixture, _survival_recipe
 
 
 class SurvivalReviewTests(unittest.TestCase):
+    def test_early_death_flag_includes_boundaries_but_not_censoring(self):
+        from ethoscopy_mcp.survival_review import early_death_mask
+        times = pd.Series([0, .5, 1, 1.000001, 0, .5, 1, -1])
+        events = pd.Series([1, 1, 1, 1, 0, 0, 0, 1])
+        self.assertEqual(early_death_mask(times, events).tolist(),
+                         [True, True, True, False, False, False, False, False])
+
     def test_overrides_reference_hash_and_artifacts(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -38,6 +45,11 @@ class SurvivalReviewTests(unittest.TestCase):
             chosen = report.loc[report.reviewed].iloc[0]
             self.assertEqual(chosen['T'], 0)
             self.assertEqual(chosen.E, 0)
+            self.assertFalse(chosen.early_death_review)
+            flagged = pd.read_csv(next(a.path for a in result.artifacts if a.name == 'early_deaths_review.csv'))
+            expected = report.loc[report.E.eq(1) & report['T'].between(0, 1), 'id']
+            self.assertEqual(set(flagged.id), set(expected))
+            self.assertEqual(result.review_summary['early_deaths_0_to_1_hours'], len(expected))
             self.assertEqual(chosen.selected_minus_reference_hours, 0)
             self.assertAlmostEqual(chosen.original_T, subject.original_T)
             self.assertEqual(sum(g.animals for g in result.group_outcomes), 4)

@@ -25,6 +25,22 @@ data. An analysis **recipe** records the settings and outputs you request.
 
 You can ask **“Run survival analysis on [folder/pickle]”** or **“Run death alignment analysis on [folder/pickle]”**. See [analysis requests](docs/ANALYSIS_REQUESTS.md) for how these requests map to the tools and saved project settings.
 
+## Survival detector names
+
+Use `death_detection.backend="km_surival"` for the pinned KM detector
+(commit `76e23fdd6c904eefc856ab5c7103a1a9bda0ba43`). The spelling
+`km_surival` is intentional. `user_km_76e23fd` remains a supported legacy
+name so saved recipes and hashes are unchanged. Both names select identical
+code and settings. `ethoscopy_3` remains the default detector.
+
+New survival runs flag detected deaths at **0–1 hours inclusive**, measured
+from each animal's first retained sample. `early_deaths_review.csv` lists
+these animals, and individual endpoint exports include `early_death_review`.
+Censored animals are not flagged. Flags do not change survival curves, event
+status, or exclusions; exclusion requires an explicit reviewed decision.
+Existing cached runs remain immutable and need a new recipe ID to regenerate
+with the added flags. Restart the MCP server after updating to load the new name.
+
 ## Reproducibility
 
 Each analysis follows **inspect → preview → approve → run → view results**.
